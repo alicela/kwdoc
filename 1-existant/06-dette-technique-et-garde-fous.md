@@ -151,7 +151,7 @@ La refonte étant décidée, l'enjeu est de **ne pas reconstituer** la dette ci-
 
 1. **Seuil de couverture bloquant** — goal JaCoCo `check` avec minimum par module (proposition : lignes ≥ 70 % cœur métier), build **rouge** en dessous. Supprimer les exclusions larges héritées ; ne plus exclure les modules de tests de la *mesure* sans justification.
 2. **Test d'architecture** (ArchUnit ou équivalent) — interdit : import `fr.insee.vtl.*`/`trevas`, dépendance d'une couche `infra`→`api`, `@GetMapping`/`@PostMapping` sur une classe non-contrôleur (le bug D4 aurait été attrapé), cycles de packages.
-3. **Scan de vulnérabilités dédié** — OWASP dependency-check / Trivy / CodeQL en CI, bloquant sur sévérité haute ; supprimer `fail-on-error:false` sur la couverture.
+3. **Scan de vulnérabilités + SBOM (supply-chain)** — génération d'un **SBOM CycloneDX** au build + scan dépendances/image (OWASP dependency-check / Trivy / Grype / CodeQL) en CI, bloquant sur sévérité haute ; supprimer `fail-on-error:false` sur la couverture. Voir la spec technique cible (D-21).
 4. **Un seul chemin de build** — CI build exactement l'artefact livré (fin de la divergence `pom.xml`/`pom-public.xml`) et **teste le chiffrement**. Épingler BPM à une **version publiée**, pas à `@master`.
 5. **Aucune valeur d'environnement en dur** — lint/test vérifiant l'absence de chemins absolus et d'URL de prod dans `src/main/resources`.
 6. **Politique de dépendances** — `renovate.json` enrichi (groupes, `vulnerabilityAlerts`, `dependencyDashboard`) ; sortir `json-simple`, réévaluer la contrainte `okhttp`↔minio, documenter chaque pin de sécurité (tomcat) avec date de revue.

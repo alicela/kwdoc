@@ -67,7 +67,7 @@ Ce que la refonte doit produire.
 | [01-objectifs-refonte](./2-cible/01-objectifs-refonte.md) | Objectifs client, besoins (must have / évolutions), NFR, contraintes | ✅ source client |
 | [02-decisions-client-arbitrages](./2-cible/02-decisions-client-arbitrages.md) | Réponses client et arbitrages de périmètre | ✅ |
 | [03-specification-fonctionnelle](./2-cible/03-specification-fonctionnelle.md) | Ce que fait la cible : flux, fonctionnalités par domaine, statuts, points ouverts | ✅ (2026-07-09) |
-| [04-specification-technique](./2-cible/04-specification-technique.md) | Archi cible : **virtual threads + DuckDB ensembliste**, **artefact unique**, ports/adapters, job store, sécurité, NFR | ✅ (2026-07-09) |
+| [04-specification-technique](./2-cible/04-specification-technique.md) | Archi cible **à l'état de l'art** : virtual threads + DuckDB ensembliste, artefact unique, ports/adapters, client Genesis déclaratif + Resilience4j, `ProblemDetail` (RFC 9457), observabilité OpenTelemetry, SBOM/supply-chain, CDS, job store | ✅ (2026-07-09, v1.1) |
 | [05-couverture-tests-cucumber](./2-cible/05-couverture-tests-cucumber.md) | Écart de couverture Cucumber existant → cible (~69 scénarios) | ✅ |
 | [regles-metiers/](./2-cible/regles-metiers/README.md) | **Règles métier cible** par domaine (RG/CN/CL), source faisant foi | ✅ |
 
@@ -104,8 +104,9 @@ Comment on passe de l'existant à la cible.
 - **Zéro VTL/Trevas** : variables déjà calculées par Genesis ; réconciliation et découpage réécrits en **SQL DuckDB**.
 - **Performance** : virtual threads + DuckDB ensembliste, objectif **< 1 Go RAM** pour 1800 interrogations.
 - **Déploiement** : **artefact unique** (API + runner batch), POM unique.
-- **Jobs** : suivi unifié et persistant (port : embarqué DuckDB/SQLite, ou PostgreSQL).
+- **Jobs** : suivi unifié et persistant (port : embarqué DuckDB/SQLite, ou PostgreSQL via Spring Data JDBC + Flyway).
 - **Liens 2à2** : délégués à **BPM** (aucune logique Kraftwerk).
+- **État de l'art** : client Genesis déclaratif (`@HttpExchange`) + Resilience4j, erreurs `ProblemDetail` (RFC 9457), observabilité **Micrometer + OpenTelemetry**, contexte par `ScopedValue`, **SBOM + scan supply-chain**, démarrage/mémoire via **CDS/AOT**.
 
 ---
 

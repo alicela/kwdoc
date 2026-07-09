@@ -41,11 +41,12 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 |---|---|---|---|
 | US-0.1 | Squelette Maven **artefact unique** (`core` + `app` + `encryption`), POM unique | Fin de la divergence POM (dette D2) | M |
 | US-0.2 | Structure **Ports & Adapters** + configuration Spring Boot 4.1 / Java 25 | Découplage, testabilité | M |
-| US-0.3 | Pipeline **CI + portes qualité bloquantes** : couverture, ArchUnit « zéro VTL », scan vulnérabilités, build unique testant le chiffrement | Empêche la reconstitution de la dette (doc 09 §6.2) | M |
-| US-0.4 | **Client Genesis** (adapter `GenesisPort`) avec auth service-à-service (client-credentials, rejeu sur 401) + pagination | Base de toute acquisition | L |
+| US-0.3 | Pipeline **CI + portes qualité bloquantes** : couverture, ArchUnit « zéro VTL », **SBOM CycloneDX + scan dépendances/image**, **NullAway (JSpecify)**, PIT, build unique testant le chiffrement | Empêche la reconstitution de la dette + supply-chain (doc 09 §6.2 ; spec technique D-18/D-21) | M |
+| US-0.4 | **Client Genesis déclaratif** (`@HttpExchange` sur `RestClient`) + **Resilience4j** (timeout/retry/circuit-breaker) + auth service-à-service (client-credentials, rejeu sur 401) + pagination | Base de toute acquisition, résiliente (D-12/D-13) | L |
 | US-0.5 | **Adapter métadonnées BPM** (`MetadataPort`, DDI + Lunatic) ; BPM épinglé à une version publiée | Structure des variables | M |
-| US-0.6 | **Moteur DuckDB** de travail (ingestion, base éphémère par job, écriture) — squelette | Cœur du traitement ensembliste | M |
-| US-0.7 | **Docker multi-stage** rootless + `HEALTHCHECK` + config externalisée (zéro valeur en dur) | Déploiement propre (dette D9) | S |
+| US-0.6 | **Moteur DuckDB** de travail (ingestion via appender, base éphémère par job, écriture) — squelette | Cœur du traitement ensembliste | M |
+| US-0.7 | **Docker multi-stage** rootless + `HEALTHCHECK` + **CDS/AOT cache** + config typée externalisée (zéro valeur en dur) | Déploiement propre, démarrage/mémoire (dette D9 ; D-20/D-22) | S |
+| US-0.8 | **Socle observabilité & erreurs** : Micrometer Observation + tracing **OTLP**, contexte par **ScopedValue**, `@RestControllerAdvice`→**ProblemDetail (RFC 9457)**, Actuator health groups | Observabilité et contrat d'erreur dès le départ (D-14/D-15/D-16/D-23) | M |
 
 **CA transverses** : `mvn verify` échoue si couverture < seuil ou si un import `fr.insee.vtl.*`/`trevas` est présent ; l'artefact testé en CI = l'artefact livré.
 
@@ -115,9 +116,9 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
-| US-5.1 | `JobStorePort` + impl **embarquée fichier (DuckDB/SQLite)** par défaut | RG-EXE-02/03/04 | TEST-EXE-02 | M |
+| US-5.1 | `JobStorePort` en **Spring Data JDBC** + impl **embarquée fichier (DuckDB/SQLite)** par défaut | RG-EXE-02/03/04 (D-17) | TEST-EXE-02 | M |
 | US-5.2 | Persistance survivant au redémarrage ; jobs `RUNNING` orphelins → `FAILED` | RG-EXE-02 / CL-EXE-02 | TEST-EXE-04 | M |
-| US-5.3 | Impl **PostgreSQL** activable par config (multi-instance) | RG-EXE-02 | TEST-EXE-04 | M |
+| US-5.3 | Impl **PostgreSQL** activable par config + **migrations Flyway** versionnées (multi-instance) | RG-EXE-02 (D-17) | TEST-EXE-04 | M |
 | US-5.4 | Statut `PARTIAL` sur erreurs non bloquantes ; distinction récupérable/fatale | RG-EXE-03/31 | TEST-EXE-03/10 | M |
 | US-5.5 | `jobId` invalide → 400 / inconnu → 404 (réponses structurées) | RG-EXE-32 / CL-EXE-01 | TEST-EXE-05 | S |
 
@@ -130,7 +131,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 |---|---|---|---|---|
 | US-6.1 | Auth **OIDC/JWT** (+ mode `NONE`) sur la surface cible ; endpoints legacy retirés | RG-EXE-10/20 | — | M |
 | US-6.2 | Rôles `ADMIN/USER/SCHEDULER` recartographiés sur les nouveaux endpoints | RG-EXE-21 | TEST-EXE-09 | M |
-| US-6.3 | **`@RestControllerAdvice` unique** + table exception→code HTTP | RG-EXE-30/32 | — | M |
+| US-6.3 | **`@RestControllerAdvice` unique** → réponses **`ProblemDetail` (RFC 9457)** + table exception→code HTTP | RG-EXE-30/32 (D-14) | — | M |
 | US-6.4 | Health-check application/Genesis/stockage **corrigé** (pas de plantage, statut dégradé) | RG-EXE-13 / CL-EXE-03 | TEST-EXE-08 | S |
 | US-6.5 | Documentation OpenAPI complète (plus de `@Operation` vides) | RG-EXE-12 | — | S |
 
@@ -202,10 +203,10 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | US | Titre | RG/Réf | Effort |
 |---|---|---|---|
-| US-12.1 | Logs structurés JSON + `correlationId` de bout en bout | doc 06 §10 | M |
-| US-12.2 | Métriques Micrometer (durée, nb interrogations, mémoire, erreurs) via Actuator | NF | M |
+| US-12.1 | Logs structurés JSON corrélés au `traceId` (contexte **ScopedValue**) | spec technique §9 (D-16) | M |
+| US-12.2 | **Micrometer Observation + tracing OTLP** (métriques + traces distribuées jusqu'à Genesis) + métriques Resilience4j | spec technique §9 (D-15) | M |
 | US-12.3 | **Feature flags** de bascule ancienne/nouvelle version par fonctionnalité (Strangler Fig) | NF-003 | M |
-| US-12.4 | Benchmark mémoire/temps par vague : valider **< 1 Go / 1800 interrogations** | NF-001/002 | M |
+| US-12.4 | Benchmark mémoire/temps par vague : valider **< 1 Go / 1800 interrogations** ; évaluer image native (E-01) vs CDS | NF-001/002 | M |
 
 ---
 
