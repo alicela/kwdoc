@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-09T10:00:00.000Z" agent="Claude Code" version="22.0.7" type="device">
+  <diagram name="Existant-vs-Cible" id="kw-existant-vs-cible">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="main_title" value="Kraftwerk — Architecture EXISTANTE vs CIBLE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Comparaison à destination des parties prenantes  —  🔴 point de douleur de l'existant   ·   ✅ apport de la cible" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="56" width="1600" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ================= PANNEAU EXISTANT ================= -->
+        <mxCell id="ex_panel" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f0f0;strokeColor=#cc6666;strokeWidth=2;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="760" height="885" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_title" value="❌ EXISTANT — Kraftwerk v4.1.3" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=17;fontStyle=1;fontColor=#a11212;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="720" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_in" value="ENTRÉE — 2 modes&#10;Fichiers locaux (hors-Genesis, limite 400 Mo) 🔴&#10;Genesis : campaignId (déprécié) / questionnaireModelId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="148" width="700" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_proc" value="Application monolithique — API + Batch dans la même appli 🔴" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#fbe4e2;strokeColor=#b85450;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="70" y="246" width="700" height="256" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_p1" value="Parsing XML / JSON Lunatic  +  Paradonnées" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="300" width="660" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_p2" value="VTL / Trevas 🔴&#10;calcul des variables · réconciliation multimode · découpage en niveaux · liens 2à2 codés en dur" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="352" width="660" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_p3" value="DuckDB in-memory · tout chargé en mémoire · traitement séquentiel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="424" width="660" height="44" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_job" value="Suivi de jobs en mémoire 🔴&#10;non persistant (perdu au redémarrage) · en partie non exposé" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="522" width="700" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_out" value="SORTIES&#10;CSV + Parquet + JSON · scripts R + SAS · chiffrement (Vault) · disque / MinIO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="592" width="700" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_foot" value="≈ 5 Go de RAM pour 1800 interrogations 🔴&#10;2 POM divergents · pas de gestion d'erreurs centralisée · tests couplés aux fichiers locaux" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="662" width="700" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="ex_in" target="ex_proc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="ex_proc" target="ex_job">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="ex_job" target="ex_out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ================= FLÈCHE CENTRALE ================= -->
+        <mxCell id="mid" value="REFONTE&#10;⇒" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=28;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="802" y="360" width="76" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ================= PANNEAU CIBLE ================= -->
+        <mxCell id="ci_panel" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eefaf0;strokeColor=#2e8b57;strokeWidth=2;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="880" y="90" width="760" height="885" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_title" value="✅ CIBLE — Kraftwerk refondu" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=17;fontStyle=1;fontColor=#1c7a45;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="720" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_in" value="ENTRÉE — source unique&#10;Genesis, par partitionId ✅ (variables déjà calculées)&#10;Métadonnées et liens 2à2 fournis par BPM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="910" y="148" width="700" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_proc" value="Artefact unique — API + runner batch (même code métier) ✅" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#e3f2e1;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="910" y="246" width="700" height="256" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_p1" value="Acquisition paginée · virtual threads (Java 25)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="930" y="300" width="660" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_p2" value="DuckDB ensembliste (SQL) ✅&#10;découpage en niveaux · réconciliation multimode · anonymisation  —  SANS VTL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="930" y="352" width="660" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_p3" value="Traitement en flux · mémoire bornée" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="930" y="424" width="660" height="44" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_job" value="Suivi de jobs unifié et persistant ✅&#10;port : embarqué (DuckDB/SQLite) ou PostgreSQL · survit au redémarrage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="910" y="522" width="700" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_out" value="SORTIES&#10;CSV + Parquet + JSON · script R (SAS supprimé) · chiffrement (Vault) · disque / MinIO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="910" y="592" width="700" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_foot" value="&lt; 1 Go de RAM pour 1800 interrogations ✅&#10;POM unique · gestion d'erreurs centralisée · portes qualité CI (zéro-VTL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="910" y="662" width="700" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#2e8b57;strokeWidth=2;" edge="1" parent="1" source="ci_in" target="ci_proc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#2e8b57;strokeWidth=2;" edge="1" parent="1" source="ci_proc" target="ci_job">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#2e8b57;strokeWidth=2;" edge="1" parent="1" source="ci_job" target="ci_out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ================= BANDEAU CE QUI CHANGE ================= -->
+        <mxCell id="chg_band" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;strokeWidth=2;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="998" width="1600" height="158" as="geometry" />
+        </mxCell>
+        <mxCell id="chg_title" value="CE QUI CHANGE (à retenir)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1006" width="1560" height="28" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chg1" value="Entrée&#10;2 modes (fichiers + Genesis)&#10;→ Genesis seul, par partitionId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="52" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg2" value="Calcul des données&#10;VTL / Trevas&#10;→ SQL DuckDB (zéro VTL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg3" value="Déploiement&#10;monolithe, 2 POM divergents&#10;→ artefact unique" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="508" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg4" value="Suivi de jobs&#10;en mémoire (volatil)&#10;→ unifié et persistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="736" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg5" value="Liens 2à2&#10;codés en dur dans Kraftwerk&#10;→ délégués à BPM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="964" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg6" value="Scripts d'import&#10;R + SAS&#10;→ R seul" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1192" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="chg7" value="Mémoire&#10;≈ 5 Go / 1800 interrogations&#10;→ &lt; 1 Go" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e8b57;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="1044" width="210" height="96" as="geometry" />
+        </mxCell>
+
+        <mxCell id="src_note" value="Sources : analyse-existante/ (vérifiée fichier:ligne) · livrables-cible/02-specification-technique-cible.md · 2026-07-09" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#777777;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1166" width="1600" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
