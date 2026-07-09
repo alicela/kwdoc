@@ -4,6 +4,8 @@
 
 Comment la cible récupère les données à traiter. Dans la cible, **l'unique source est Genesis**, interrogée par **`partitionId`**. Le mode « hors Genesis » (lecture de fichiers de réponses locaux) est **supprimé** (RG-ACQ-90).
 
+**Modèle de regroupement Genesis** (précisions client 2026-07-09) : un **`partitionId`** (UUID) est un **regroupement d'`interrogationId`**. Une partition peut contenir **plusieurs `collectionInstrument`** (ex. un questionnaire web + un questionnaire téléphone). Réciproquement, un même `collectionInstrument` peut appartenir à **plusieurs partitions** (enquêtes mensuelles réutilisant le même questionnaire sur l'année). **L'export se fait par partition, en cumulant les modes.** Chaque partition porte un **`shortLabel`** utilisable pour le **nommage des fichiers** (RG-CSV-02). « Export par lot » = export **par partition**.
+
 Rappel du modèle de données fourni par Genesis (existant, `SurveyUnitUpdateLatest.java:10-27`) : une interrogation = `interrogationId`, `usualSurveyUnitId`, `collectionInstrumentId`, `mode`, `isCapturedIndirectly`, `validationDate`, `questionnaireState`, une liste `collectedVariables` (champ JSON `variablesUpdate`) et une liste `externalVariables`. Chaque variable (`VariableModel`) porte `varId`, `value`, `scope` (nom de groupe ou `RACINE`), `iteration`.
 
 ---
@@ -46,10 +48,10 @@ La structure des variables et des groupes/boucles est fournie par le modèle de 
 - **Source** : code (`BuildBindingsSequenceGenesis` utilise `metadataModels.get(dataMode)` et `metadataModel.getVariables().getVariable(name).getGroupName()`).
 - **Statut cible** : 🟢 Conservé (dépendance `fr.insee.bpm` à confirmer pour la cible).
 
-### RG-ACQ-08 — Mode « Lunatic only » (sans DDI)
-Un traitement sans DDI, basé uniquement sur le modèle Lunatic, est **conservé** dans la cible (pour les cas où le DDI n'est pas disponible).
-- **Source** : décision client (2026-07-08 : mode sans DDI conservé) ; code (`/main/genesis/by-questionnaire/lunatic-only`, actif).
-- **Statut cible** : 🟢 Conservé. Rappel (guide `enqgenesis.md`) : la correction du résultat n'est pas garantie sans DDI — mode à réserver aux cas où le DDI manque. Contrairement au guide qui annonçait sa suppression, il est maintenu.
+### RG-ACQ-08 — Mode « Lunatic only » (sans DDI) — **différé**
+Un traitement basé uniquement sur le modèle Lunatic (sans DDI) n'est **pas développé dans un premier temps**. Le **modèle Lunatic va évoluer** pour être **enrichi des informations aujourd'hui portées par le DDI** ; on **attend ce nouveau modèle**. Le moment venu, la solution cible devra être **plus fluide** que le mode sans-DDI actuel (qui ne garantit pas la correction du résultat).
+- **Source** : décision client (2026-07-09, révision de la position du 2026-07-08) ; existant : `/main/genesis/by-questionnaire/lunatic-only`.
+- **Statut cible** : ⏸️ **Différé** (attente du modèle Lunatic enrichi) — ni conservé tel quel, ni supprimé.
 
 ### RG-ACQ-10 — Données partielles : `questionnaireState`
 Chaque interrogation porte un `questionnaireState` valant `FINISHED` (questionnaire validé) ou `STARTED` (réponse partielle / non validée). Cette variable est propagée telle quelle dans les exports (CSV/Parquet et JSON).
@@ -66,9 +68,14 @@ Indicateur signalant qu'une donnée a été captée via un mode différent de ce
 - **Source** : guide (`jsonSIexterne.md`) ; code (`SurveyUnitUpdateLatest.isCapturedIndirectly`).
 - **Statut cible** : 🟢 Conservé (usage précis en sortie à préciser).
 
-### RG-ACQ-90 — Suppression du mode « hors Genesis »
-La lecture de fichiers de réponses locaux (répertoire + `kraftwerk.json`, parseurs XML/JSON Lunatic locaux) est retirée. Corollaire : la limite de 400 Mio (`fr.insee.postcollecte.size-limit`) qui ne s'appliquait qu'à ce mode disparaît.
-- **Source** : décision client (point C de `04-comparaison-code-tests-guide.md`).
+### RG-ACQ-90 — Suppression du mode « hors Genesis » et des traitements associés
+La lecture de fichiers de réponses locaux est retirée, ainsi que tout ce qui en dépend :
+- parseurs de fichiers locaux, dont **`XformsDataParser`** et les parseurs XML/JSON Lunatic locaux ;
+- le **découpage de fichiers XML volumineux** (`SplitterService`, endpoint `/split/lunatic-xml`) ;
+- la limite de **400 Mio** (`fr.insee.postcollecte.size-limit`), qui ne s'appliquait qu'à ce mode.
+
+Sont également **exclus** de la cible (précisions client 2026-07-09) : les **paradonnées**, les **modules TCM en VTL** et le **VTL utilisateur** (scripts métier `.vtl`), et l'**archivage des fichiers d'entrée** (RG-ANO-22). Seules les **données de reporting** pourront, dans une **version avancée**, être lues depuis des fichiers à part (RG-REP-02).
+- **Source** : décisions client (point C de `04-comparaison-code-tests-guide.md` ; précisions 2026-07-09).
 - **Statut cible** : 🔴 Supprimé.
 
 ---

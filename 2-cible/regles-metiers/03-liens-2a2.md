@@ -43,20 +43,20 @@ Pour une boucle d'individus, une matrice de colonnes décrivant, pour chaque ind
 
 ### RG-LIEN-02 — Nombre maximal d'individus liés
 La matrice supporte jusqu'à **20 liens par individu** (borne `MAX_LINKS_ALLOWED = 21`, exclusive).
-- **Source** : code (`Constants.MAX_LINKS_ALLOWED`, boucle `k < 21`).
-- **Statut cible** : 🟠 À reconfirmer — cette borne fixe est-elle une contrainte métier réelle (taille max de ménage enquêté) ou un choix technique arbitraire à assouplir ?
+- **Source** : code (`Constants.MAX_LINKS_ALLOWED`, boucle `k < 21`) ; **confirmé contrainte métier** (client 2026-07-09).
+- **Statut cible** : 🟢 Conservé — **contrainte métier** (nombre max d'individus liés), à respecter, pas un choix technique à assouplir.
 
 ### RG-LIEN-03 — Valeurs sentinelles
 - `"0"` : même axe (l'individu vis-à-vis de lui-même) → pas de lien.
 - `"99"` : position hors matrice (au-delà du nombre d'individus réels) → pas de lien.
 - Toute autre valeur : le code du lien familial effectif entre les deux individus.
-- **Source** : code (`SAME_AXIS_VALUE`, `NO_PAIRWISE_VALUE`).
-- **Statut cible** : 🔵 Adapté — sémantique à conserver ; les valeurs littérales `"0"`/`"99"` peuvent être reconsidérées (risque de collision avec de vrais codes de lien à vérifier).
+- **Source** : code (`SAME_AXIS_VALUE`, `NO_PAIRWISE_VALUE`) ; **confirmé contrainte métier** (client 2026-07-09).
+- **Statut cible** : 🟢 Conservé — les valeurs sentinelles `"0"`/`"99"` sont **métier** et conservées telles quelles.
 
 ### RG-LIEN-04 — Nommage des colonnes de lien
 Les colonnes sont nommées `LIEN_1` … `LIEN_20` et rattachées à l'occurrence d'individu dans la table de boucle.
-- **Source** : code (`Constants.LIEN + k`).
-- **Statut cible** : 🔵 Adapté.
+- **Source** : code (`Constants.LIEN + k`) ; **confirmé contrainte métier** (client 2026-07-09).
+- **Statut cible** : 🟢 Conservé — nommage `LIEN_i` **métier**, conservé.
 
 ### RG-LIEN-90 — Traitement porté par BPM
 La dérivation de la matrice de liens 2à2 est de la responsabilité de **BPM**, pas de Kraftwerk. Kraftwerk doit conserver la dépendance `fr.insee.bpm` et consommer les variables de liens produites, sans logique dédiée.

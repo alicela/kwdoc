@@ -10,7 +10,9 @@ Il intègre les décisions déjà arbitrées :
 - **Fusion multimode automatique conservée**.
 - **Paradonnées exclues** du périmètre Kraftwerk.
 - **Aucun vocabulaire ni dépendance VTL/Trevas** : les transformations conservées doivent être réexprimées autrement (SQL DuckDB notamment).
-- **Suivi de jobs unifié et persistant**.
+- **Suivi de jobs unifié, au fil de l'eau, NON persistant** (traitements temporaires et rejouables).
+- **Déploiement Kubernetes, stockage MinIO** ; **séparation API / Batch** (utilité de l'API à confirmer).
+- **Chiffrement optionnel tout au long du traitement**, implémentation **interchangeable**.
 
 Voir `../../1-existant/04-comparaison-code-tests-guide.md` (section « Décisions arbitrées ») et `../02-decisions-client-arbitrages.md` pour le détail des arbitrages.
 

@@ -772,3 +772,42 @@ Après la production d'une description fidèle et vérifiée de l'existant (`01-
 - **VTL ne doit plus être mentionné/porté par Kraftwerk** : confirmation de l'externalisation complète de VTL (cf. Question 1 plus haut) — la cible ne doit pas réintroduire de terminologie ou de dépendance VTL/Trevas dans son architecture ou sa documentation.
 
 Ces trois points sont à traiter comme acquis pour la suite des travaux (comparaison code/tests/guide, extraction des règles métier, spécifications cible), sauf nouvel élément contraire.
+
+---
+
+## Addendum — arbitrages client du 2026-07-09
+
+Nouvelles précisions/décisions, à traiter comme acquises (elles **révisent** certains points antérieurs).
+
+**Ne pas reprendre dans la cible** :
+- Lecture de fichiers locaux XML et parseur `XformsDataParser` (données via Genesis). *Exception : les **données de reporting** pourront être lues depuis des fichiers à part, mais en **version avancée**.*
+- Les **paradonnées**.
+- Les **modules TCM en VTL** et le **VTL utilisateur**.
+- Le **découpage de fichiers XML volumineux**.
+- L'**archivage des fichiers d'entrée** (inutilisé).
+
+**Conserver ou améliorer** :
+- **Suivi des traitements au fil de l'eau**.
+- **Gestion des boucles** et création des tables associées — **sans VTL**.
+- **Réconciliation multimode** — **sans VTL**.
+- Possibilité de **faire passer un script (SQL, voire R) sur les tables finales dans DuckDB**.
+- **Chiffrement optionnel** sécurisant les données **tout au long du traitement** ; la lib de chiffrement reste **interne**, donc le code doit permettre d'en **brancher une autre** (implémentation interchangeable).
+- **Logging** et **gestion des erreurs** améliorés.
+
+**Décisions techniques / cadrage** :
+- **Suivi de statut des jobs asynchrones : NON persisté.** Un plantage serveur perd les traitements en cours — ce n'est pas grave (temporaire, **rejouable**). (⟲ révise le point D « suivi persistant » de la comparaison code/tests/guide.)
+- **DuckDB** retenu **essentiellement pour ses capacités d'export** (Parquet, JSON, CSV).
+- Déploiement sur **Kubernetes** → connexion **MinIO** requise (**pas de filesystem** a priori).
+- **Java 25 + Spring Boot 4** (ne pas redescendre les versions).
+- **Séparer API et Batch** ; **l'utilité du mode API reste à confirmer**. (⟲ révise l'option « artefact unique » envisagée plus tôt le même jour.)
+- Implémenter le **traitement parallèle**.
+
+**Modèle de données Genesis** :
+- `partitionId` (UUID) = **regroupement d'`interrogationId`**. Une partition peut contenir **plusieurs `collectionInstrument`** ; un `collectionInstrument` peut servir dans **plusieurs partitions** (enquêtes mensuelles). **Export par partition, cumul des modes.** Le **`shortLabel`** de partition sert au **nommage des fichiers**. « Export par lot » = export **par partition**.
+
+**Précisions par domaine** :
+- **Mode sans-DDI (Lunatic only)** : **différé** — le modèle Lunatic va être enrichi des infos du DDI ; attendre ce nouveau modèle, viser une solution **plus fluide** que l'actuelle.
+- **Liens 2à2** : nombre max, nommage des variables et valeurs sentinelles sont des **contraintes métier**.
+- **Multimode** : une même variable ne devrait **pas** diverger en type (DDI identiques) ; si divergence → **erreur lisible** pour l'utilisateur (et éventuellement **deux colonnes** en attendant).
+- **Diagnostic** : besoin d'outils (formats variés, erreurs imprévisibles). Le **debug par interrogation** est utile à la MOA → conservé. Le **pas-à-pas** (datasets VTL par étape) n'est plus pertinent (pas de VTL) ; piste : **inspecter la base DuckDB**.
+- **Anonymisation** : **non nécessaire pour la première enquête** qui utilisera KW2.

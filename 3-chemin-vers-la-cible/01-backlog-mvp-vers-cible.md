@@ -15,12 +15,12 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | Vague | Epic | Objectif | Dépend de |
 |---|---|---|---|
-| **V0** | EPIC-0 Fondations | Squelette artefact unique, ports/adapters, CI + portes qualité, client Genesis + BPM | — |
+| **V0** | EPIC-0 Fondations | Squelette **modules séparés (core/batch/api)**, ports/adapters, CI + portes qualité + SBOM, client Genesis + BPM | — |
 | **V1** | EPIC-1 **MVP — Export Parquet depuis Genesis** | Acquisition `partitionId` → RACINE + boucles → Parquet, job async | EPIC-0 |
 | **V2** | EPIC-2 Export CSV + scripts + logs | CSV conforme, script R, fichiers log/erreurs, sous-dossiers datés | EPIC-1 |
 | **V2** | EPIC-3 Réconciliation multimode (SQL) | Fusion multimode sans VTL, `MODE_KRAFTWERK` | EPIC-1 |
 | **V2** | EPIC-4 États & variables optionnelles | `STARTED/FINISHED`, `addStates`, `FILTER_RESULT`/`MISSING` | EPIC-1 |
-| **V3** | EPIC-5 Suivi de jobs persistant | Store unifié persistant, statuts, reprise | EPIC-1 |
+| **V2** | EPIC-5 Suivi de jobs unifié (mémoire) | Store unifié **en mémoire**, statuts, suivi au fil de l'eau — **non persistant** | EPIC-1 |
 | **V3** | EPIC-6 Sécurité & API | OIDC, rôles, gestion d'erreurs centralisée, health-check | EPIC-1 |
 | **V3** | EPIC-7 Export JSON SI externe | JSON incrémental + replay + debug | EPIC-2 |
 | **V3** | EPIC-8 Données de reporting | Fichier reporting séparé, `OUTCOME_SPOTTING` | EPIC-2 |
@@ -39,7 +39,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | US | Titre | Valeur | Effort |
 |---|---|---|---|
-| US-0.1 | Squelette Maven **artefact unique** (`core` + `app` + `encryption`), POM unique | Fin de la divergence POM (dette D2) | M |
+| US-0.1 | Squelette Maven **modules séparés** (`core` + `batch` + `api` + `encryption`), **POM parent unique** ; le batch est le mode principal (l'API à confirmer) | Séparation API/batch (client) sans recréer la divergence POM (dette D2) | M |
 | US-0.2 | Structure **Ports & Adapters** + configuration Spring Boot 4.1 / Java 25 | Découplage, testabilité | M |
 | US-0.3 | Pipeline **CI + portes qualité bloquantes** : couverture, ArchUnit « zéro VTL », **SBOM CycloneDX + scan dépendances/image**, **NullAway (JSpecify)**, PIT, build unique testant le chiffrement | Empêche la reconstitution de la dette + supply-chain (doc 09 §6.2 ; spec technique D-18/D-21) | M |
 | US-0.4 | **Client Genesis déclaratif** (`@HttpExchange` sur `RestClient`) + **Resilience4j** (timeout/retry/circuit-breaker) + auth service-à-service (client-credentials, rejeu sur 401) + pagination | Base de toute acquisition, résiliente (D-12/D-13) | L |
@@ -53,8 +53,8 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 ---
 
 ## EPIC-1 — MVP : Export Parquet depuis Genesis (V1) ⭐
-**But** : produire les tables Parquet (RACINE + boucles) d'une partition Genesis, de façon asynchrone. **Sans** liens 2à2, chiffrement, anonymisation, CSV, JSON, reporting, ni réconciliation multimode (MVP mono-mode accepté).
-**Démo cible** : `POST /exports/parquet?partitionId=…` → `202 + jobId` → fichiers `<partitionId>_RACINE.parquet` (+ tables de boucle) déposés sur disque.
+**But** : produire les tables Parquet (RACINE + boucles) d'une partition Genesis, de façon asynchrone, **sur MinIO**. **Sans** liens 2à2, chiffrement, anonymisation, CSV, JSON, reporting, mode sans-DDI, ni réconciliation multimode (MVP mono-mode accepté).
+**Démo cible** : lancement (Job/CLI) sur un `partitionId` → fichiers `<shortLabel>_RACINE.parquet` (+ tables de boucle) écrits sur **MinIO** ; suivi de statut en mémoire.
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
@@ -63,11 +63,11 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-1.3 | Construire le schéma des niveaux d'information depuis les métadonnées BPM (RACINE + boucles) | RG-ACQ-07, RG-STR-01/06 | TEST-STR-01 | L |
 | US-1.4 | Répartir les variables en table **RACINE** (identifiants + variables d'unité) — en **SQL DuckDB** | RG-STR-02/05 | TEST-STR-01 | M |
 | US-1.5 | Répartir les variables de boucle en **tables de boucle** avec identifiant d'occurrence `<BOUCLE>-<NN>` | RG-STR-03/04 | TEST-STR-02/03 | M |
-| US-1.6 | Écrire chaque table en **Parquet** (`COPY … TO … FORMAT PARQUET`) dans un sous-dossier d'exécution | RG-CSV-01/08/12 | TEST-CSV-02 | M |
+| US-1.6 | Écrire chaque table en **Parquet** (`COPY … TO … FORMAT PARQUET`) **sur MinIO**, dans un sous-dossier d'exécution, préfixe `<shortLabel>` | RG-CSV-01/02/08/12, RG-ANO-21 | TEST-CSV-02 | M |
 | US-1.7 | Déclencher l'export en **asynchrone** (`202` + `jobId`) sur exécuteur virtual-threads ; statut consultable (en mémoire au MVP) | RG-EXE-01/03/05 | TEST-EXE-01/02 | M |
 
-**Hors MVP explicitement** : liens 2à2 (EPIC-11), chiffrement (EPIC-10), anonymisation (EPIC-9), CSV (EPIC-2), multimode (EPIC-3), persistance job (EPIC-5).
-**Dette assumée au MVP** : suivi de job **en mémoire** (non persistant) — remboursée par EPIC-5.
+**Hors MVP explicitement** : liens 2à2 (EPIC-11), chiffrement (EPIC-10), anonymisation (EPIC-9), CSV (EPIC-2), multimode (EPIC-3).
+**Suivi de job** : **en mémoire, non persistant — c'est le choix cible** (traitements temporaires et rejouables), pas une dette. EPIC-5 unifie et fiabilise ce suivi, sans introduire de persistance.
 
 ---
 
@@ -82,6 +82,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-2.4 | Produire le **script d'import R** ; **ne pas** produire de SAS | RG-CSV-09 | TEST-CSV-05 | M |
 | US-2.5 | Produire le **fichier de log d'exécution** et le **fichier d'erreurs** (contenu non-VTL) par sous-dossier daté | RG-CSV-10/11/12 | TEST-EXE-06/07 | M |
 | US-2.6 | Échappement CSV (`;`, `"`, saut de ligne), null vs chaîne vide, table vide | CL-CSV-01/02/04/05 | TEST-CSV-06/08/10 | M |
+| US-2.7 | **Post-traitement par script utilisateur (SQL)** sur les tables finales DuckDB avant écriture (R à l'étude) | RG-CSV-13 | — | M |
 
 ---
 
@@ -92,7 +93,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 |---|---|---|---|---|
 | US-3.1 | Fusionner les jeux unimodaux en un jeu unique (UNION SQL) + colonne `MODE_KRAFTWERK` | RG-MULTI-01/02 | TEST-MULTI-01 | L |
 | US-3.2 | Union des variables présentes dans un seul mode (valeurs nulles pour les autres) | RG-MULTI-03 | TEST-MULTI-02 | M |
-| US-3.3 | Harmonisation des types divergents (règles de promotion spécifiées) | RG-MULTI-04 / CL-MULTI-02 | TEST-MULTI-03 | M |
+| US-3.3 | **Divergence de type entre modes → erreur lisible** (non attendue car DDI identiques) ; repli possible en deux colonnes — **pas d'harmonisation silencieuse** | RG-MULTI-04 / CL-MULTI-02 | TEST-MULTI-03 | M |
 | US-3.4 | Règle par défaut sur **doublon inter-mode** (décision O-03) | CL-MULTI-03 | TEST-MULTI-04 | M |
 | US-3.5 | Comportement mono-mode (`MODE_KRAFTWERK` présent ou non — à figer) | CN-MULTI-02 | TEST-MULTI-05 | S |
 
@@ -107,20 +108,21 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-4.2 | Option `addStates` : variables `_STATE`, en excluant `FILTER_RESULT_*`/`*_MISSING` | RG-ACQ-11 | TEST-ACQ-06 | M |
 | US-4.3 | Restituer `FILTER_RESULT_*` / `*_MISSING` reçues de Genesis (non recalculées) | RG-ACQ-03 | TEST-ACQ-07 | S |
 | US-4.4 | Restituer `isCapturedIndirectly` ; gérer `validationDate` absente | RG-ACQ-12 / CL-ACQ-03 | TEST-ACQ-13/10 | S |
-| US-4.5 | Mode **sans DDI** (Lunatic seul) via Genesis | RG-ACQ-08 | TEST-ACQ-09 | M |
+| US-4.5 | Mode **sans DDI** (Lunatic seul) | RG-ACQ-08 | TEST-ACQ-09 | ⏸️ **Différé** — attendre le **nouveau modèle Lunatic enrichi** ; ne pas développer maintenant |
 
 ---
 
-## EPIC-5 — Suivi de jobs persistant unifié (V3)
-**But** : rembourser la dette du MVP (job en mémoire) — store unifié persistant survivant au redémarrage.
+## EPIC-5 — Suivi de jobs unifié en mémoire (V2)
+**But** : un **unique** mécanisme de suivi de statut **en mémoire**, observable au fil de l'eau. **Pas de persistance** (traitements temporaires et rejouables ; un plantage perd les jobs en cours, c'est accepté).
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
-| US-5.1 | `JobStorePort` en **Spring Data JDBC** + impl **embarquée fichier (DuckDB/SQLite)** par défaut | RG-EXE-02/03/04 (D-17) | TEST-EXE-02 | M |
-| US-5.2 | Persistance survivant au redémarrage ; jobs `RUNNING` orphelins → `FAILED` | RG-EXE-02 / CL-EXE-02 | TEST-EXE-04 | M |
-| US-5.3 | Impl **PostgreSQL** activable par config + **migrations Flyway** versionnées (multi-instance) | RG-EXE-02 (D-17) | TEST-EXE-04 | M |
-| US-5.4 | Statut `PARTIAL` sur erreurs non bloquantes ; distinction récupérable/fatale | RG-EXE-03/31 | TEST-EXE-03/10 | M |
-| US-5.5 | `jobId` invalide → 400 / inconnu → 404 (réponses structurées) | RG-EXE-32 / CL-EXE-01 | TEST-EXE-05 | S |
+| US-5.1 | `JobStorePort` + impl **en mémoire** (structure concurrente unique) unifiant les deux stores existants | RG-EXE-02/03/04 (D-08/D-17) | TEST-EXE-02 | S |
+| US-5.2 | **Suivi au fil de l'eau** (progression + statut observables pendant le traitement) | RG-EXE-02/03 | TEST-EXE-02 | M |
+| US-5.3 | Statut `PARTIAL` sur erreurs non bloquantes ; distinction récupérable/fatale | RG-EXE-03/31 | TEST-EXE-03/10 | M |
+| US-5.4 | `jobId` invalide → 400 / inconnu → 404 (réponses structurées `ProblemDetail`) | RG-EXE-32 / CL-EXE-01 | TEST-EXE-05 | S |
+
+> **Retiré** : persistance, Spring Data JDBC, PostgreSQL, Flyway, reprise après redémarrage — non souhaités par le client. Le test « persistance après redémarrage » (ex-TEST-EXE-04) devient **sans objet**.
 
 ---
 
@@ -134,6 +136,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-6.3 | **`@RestControllerAdvice` unique** → réponses **`ProblemDetail` (RFC 9457)** + table exception→code HTTP | RG-EXE-30/32 (D-14) | — | M |
 | US-6.4 | Health-check application/Genesis/stockage **corrigé** (pas de plantage, statut dégradé) | RG-EXE-13 / CL-EXE-03 | TEST-EXE-08 | S |
 | US-6.5 | Documentation OpenAPI complète (plus de `@Operation` vides) | RG-EXE-12 | — | S |
+| US-6.6 | **Diagnostic** : inspection de la base **DuckDB** de travail (voir les tables intermédiaires d'une exécution) — le « pas-à-pas » VTL est supprimé | RG-EXE-11 | — | M |
 
 ---
 
@@ -146,7 +149,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-7.2 | Incrémental par `sinceDate` / dernière extraction ; MAJ date **au succès seulement** | RG-JSON-03/04 / CL-JSON-05 | TEST-JSON-03/09 | M |
 | US-7.3 | **Replay** `[sinceDate, untilDate]` sans faire avancer la date d'extraction | RG-JSON-06/07 | TEST-JSON-04/05 | M |
 | US-7.4 | UTC/local exclusifs ; sortie vide/204 si rien de neuf | RG-JSON-05/09 | TEST-JSON-06/08 | S |
-| US-7.5 | Debug par `interrogationIds` (échecs isolés) — si conservé (O-07) | RG-JSON-08 | TEST-JSON-07 | M |
+| US-7.5 | **Debug par `interrogationIds`** (échecs isolés) — **conservé, utile à la MOA** pour diagnostiquer les traitements | RG-JSON-08 | TEST-JSON-07 | M |
 
 ---
 
@@ -165,6 +168,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 ## EPIC-9 — Anonymisation (V4)
 **But** : suppression de colonnes paramétrée par enquête (nouvelle fonctionnalité).
+⏸️ **Non requise pour la première enquête qui utilisera KW2** (client 2026-07-09) → planifier après la première mise en production.
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
@@ -230,11 +234,11 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | **M0 — Socle** | EPIC-0 | CI verte + portes qualité actives ; client Genesis + BPM opérationnels |
 | **M1 — MVP** | EPIC-1 | Parquet RACINE+boucles d'une partition réelle, async ; démo client |
 | **M2 — Export complet** | EPIC-2/3/4 | CSV+R, multimode SQL, états — parité fonctionnelle « export » |
-| **M3 — Service robuste** | EPIC-5/6 | jobs persistants, sécurité, erreurs centralisées, health-check |
+| **M3 — Service robuste** | EPIC-5/6 | jobs unifiés (mémoire, au fil de l'eau), sécurité, erreurs centralisées, health-check, diagnostic |
 | **M4 — Parité cible** | EPIC-7/8/9/10/11/12 | JSON, reporting, anonymisation, chiffrement/MinIO, liens BPM ; **< 1 Go validé** ; bascule prod |
 | **M5 — Évolutions** | EPIC-13 | selon priorisation client |
 
 ## Notes de priorisation
 - **Non-régression prioritaire** : EPIC-3 (multimode réécrit sans VTL) et EPIC-8 (`OUTCOME_SPOTTING`) sont les logiques métier les plus à risque — à couvrir tôt par tests.
 - **Zones sans aucune couverture aujourd'hui** (cf. couverture Cucumber) : JSON (EPIC-7), jobs async (EPIC-5/6), multimode réel (EPIC-3), anonymisation (EPIC-9) — prévoir l'effort de test associé.
-- Ce backlog **remplace** la roadmap indicative de `annexe-02-synthese-executive-initiale.md` (rédigée avant les arbitrages du 2026-07-09 : réactif → virtual threads, 3 artefacts → artefact unique). En cas de divergence, ce document fait foi.
+- Ce backlog **remplace** la roadmap indicative de `annexe-02-synthese-executive-initiale.md`. Révisions client 2026-07-09 intégrées : suivi de jobs **non persistant** (mémoire), **séparation API/batch**, **MinIO** (Kube), **chiffrement tout au long + interchangeable**, mode sans-DDI **différé**, anonymisation **hors 1ʳᵉ enquête**, script de **post-traitement** sur tables DuckDB. En cas de divergence, ce document fait foi.

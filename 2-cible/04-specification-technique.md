@@ -4,9 +4,11 @@
 
 Ce document décrit **comment** est construite la cible : architecture, technologies, flux d'exécution, contrats internes. Le **quoi** fonctionnel est dans `03-specification-fonctionnelle.md`. Les garde-fous anti-dette sont dans `../1-existant/06-dette-technique-et-garde-fous.md`.
 
-> ⚠️ **Écart assumé avec `../3-chemin-vers-la-cible/annexe-01-choix-architecturaux-initiaux.md`** (« Mistral Vibe », non vérifié) : il propose Spring WebFlux/Reactor, Spring Batch + PostgreSQL et 3 artefacts séparés. La cible retient d'autres choix (virtual threads + DuckDB, artefact unique, jobs derrière un port). Le présent document fait foi.
+> ⚠️ **Écart assumé avec `../3-chemin-vers-la-cible/annexe-01-choix-architecturaux-initiaux.md`** (« Mistral Vibe », non vérifié) : il propose Spring WebFlux/Reactor et Spring Batch + PostgreSQL persistant. La cible retient virtual threads + DuckDB (pas de réactif) et un **suivi de jobs en mémoire, non persistant**. En revanche, la **séparation API / Batch** est bien retenue (décision client 2026-07-09). Le présent document fait foi.
 
-> 🎯 **Principe directeur « état de l'art »** : tirer parti de la plateforme (Java 25, Spring Framework 7 / Boot 4) plutôt que d'ajouter des frameworks. On privilégie **les capacités natives et standardisées** (virtual threads, scoped values, clients HTTP déclaratifs, `ProblemDetail` RFC 9457, Micrometer Observation/OpenTelemetry, SBOM CycloneDX) et on n'introduit une dépendance que lorsqu'elle apporte une valeur nette (Resilience4j, Flyway, DuckDB).
+> 🔄 **Révisions client 2026-07-09** intégrées : suivi de jobs **non persistant** (mémoire, rejouable) ; **séparation API / Batch** (utilité de l'API à confirmer) ; **stockage MinIO** (Kube, plus de filesystem a priori) ; **chiffrement tout au long du traitement** et **interchangeable** ; DuckDB retenu **essentiellement pour ses capacités d'export** Parquet/JSON/CSV.
+
+> 🎯 **Principe directeur « état de l'art »** : tirer parti de la plateforme (Java 25, Spring Framework 7 / Boot 4) plutôt que d'ajouter des frameworks. On privilégie **les capacités natives et standardisées** (virtual threads, scoped values, clients HTTP déclaratifs, `ProblemDetail` RFC 9457, Micrometer Observation/OpenTelemetry, SBOM CycloneDX) et on n'introduit une dépendance que lorsqu'elle apporte une valeur nette (Resilience4j, DuckDB).
 
 ---
 
@@ -20,10 +22,10 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 | D-02 | **Zéro VTL/Trevas** | Variables déjà calculées par Genesis (RG-ACQ-03) |
 | D-03 | **Genesis unique source, par `partitionId`** | Décision client (RG-ACQ-01/90) |
 | D-04 | **Concurrence : virtual threads + traitement ensembliste DuckDB** — pas de programmation réactive | DuckDB (colonnaire, spill-to-disk) porte le budget mémoire ; les virtual threads couvrent la concurrence I/O sans la complexité Reactor |
-| D-05 | **Artefact unique** (`kraftwerk-core` + `kraftwerk-app`, API + runner batch dans un jar/image, mode au lancement) | Corrige la divergence de POM (doc 09) ; code métier partagé à 100 % |
-| D-06 | **DuckDB au cœur du traitement** (split par niveau, réconciliation, écriture Parquet/CSV) | Opérations ensemblistes = clé du < 1 Go RAM |
+| D-05 | **Séparation API / Batch** : `kraftwerk-core` (métier partagé) + `kraftwerk-batch` (mode principal, Job Kube) + `kraftwerk-api` (**utilité à confirmer**). POM parent unique, un seul chemin de build par artefact | Décision client 2026-07-09 ; batch = exécution principale sur Kubernetes |
+| D-06 | **DuckDB au cœur du traitement** (split par niveau, réconciliation, écriture) | **Retenu essentiellement pour ses capacités d'export Parquet/JSON/CSV** ; les opérations ensemblistes servent aussi le budget < 1 Go RAM |
 | D-07 | **Ports & Adapters (hexagonal)** | Testabilité, découplage, remplaçabilité |
-| D-08 | **Suivi de jobs derrière un port** : impl embarquée fichier par défaut, PostgreSQL activable | PostgreSQL requis dès le multi-instance |
+| D-08 | **Suivi de jobs unifié EN MÉMOIRE, non persistant** (derrière un port) | Décision client : traitements temporaires et **rejouables** ; un plantage perd les jobs en cours, ce n'est pas grave — **pas de persistance** |
 | D-10 | **Liens 2à2 via BPM** (aucune logique Kraftwerk) | Décision client (RG-LIEN-90) |
 
 ### 1.2 État de l'art — tranché ✅ (renforcements 2026-07-09)
@@ -36,7 +38,7 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 | D-14 | **Erreurs HTTP normalisées `ProblemDetail` (RFC 9457)** via `@RestControllerAdvice` unique | Format d'erreur standardisé et interopérable ; remplace les corps d'erreur ad hoc (dette 08 §3) |
 | D-15 | **Observabilité unifiée : Micrometer Observation API + Micrometer Tracing → OpenTelemetry (OTLP)** ; métriques + **traces distribuées** (traceId/spanId) | Traçabilité de bout en bout export→Genesis→stockage ; standard OTel vendor-neutral (remplace le simple correlationId) |
 | D-16 | **Propagation de contexte par `ScopedValue`** (stable en Java 25), pas de `ThreadLocal`/MDC | `ThreadLocal` ne passe pas à l'échelle avec des millions de virtual threads ; `ScopedValue` est le mécanisme conçu pour cela |
-| D-17 | **Job store en Spring Data JDBC + migrations Flyway** (PostgreSQL) ; schéma versionné | Persistance légère et explicite (pas d'ORM lourd) ; migrations reproductibles et auditées |
+| D-17 | **Suivi de jobs en mémoire** (structure concurrente unifiée), pas de base ni de migration | Aligné sur la décision « non persistant » (D-08) — inutile d'introduire PostgreSQL/Flyway pour du transitoire rejouable |
 | D-18 | **Null-safety JSpecify** (annotations `@Nullable`/`@NonNull`) + vérification au build (NullAway / Error Prone) | Spring 7 adopte JSpecify ; détection des NPE à la compilation |
 | D-19 | **Versionnement d'API natif Spring MVC 7** (négociation de version) | Fait évoluer l'API (p. ex. `partitionId`) sans casser les clients, sans bricolage d'URL |
 | D-20 | **Démarrage/mémoire : CDS + cache AOT (Project Leyden)** activés par défaut | Démarrage plus rapide et RSS réduit — utile pour le mode batch (cold start) et le budget mémoire, sans les contraintes du natif |
@@ -69,7 +71,7 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                        kraftwerk-app  (1 jar / 1 image)                        │
+│        kraftwerk-core partagé — artefacts : kraftwerk-batch (Kube) + kraftwerk-api (?)        │
 │                                                                              │
 │  Mode API (défaut)                              Mode batch (--batch …)        │
 │  ┌───────────────────────────┐                 ┌────────────────────┐        │
@@ -89,8 +91,8 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 │   ┌───────────┬──────────┬─────────┼──────────┬───────────┬──────────────┐   │
 │   ▼           ▼          ▼         ▼          ▼           ▼              ▼   │
 │ GenesisPort MetadataPort TabularEngine StoragePort EncryptionPort JobStorePort │
-│  │@HttpExchange BPM        DuckDB       FS/MinIO    Vault (opt.)  SpringDataJDBC│
-│  │+Resilience4j (DDI/Lun.) (in-proc)                              embarqué|PG   │
+│  │@HttpExchange BPM        DuckDB       MinIO       Vault (opt.)  en mémoire    │
+│  │+Resilience4j (DDI/Lun.) (in-proc)    (Kube)                    (non persist.)│
 │  ▼                                                                             │
 │ Genesis REST                                                                   │
 │                                                                              │
@@ -102,8 +104,9 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 ```
 
 - **`kraftwerk-core`** : domaine (records/sealed) + use cases + ports. Aucune dépendance Spring Web ni techno externe concrète. Annoté JSpecify.
-- **`kraftwerk-app`** : adapters (controllers, runner batch, client Genesis déclaratif, moteur DuckDB, écrivains), configuration Spring, sécurité, observabilité.
-- **`kraftwerk-encryption`** : adapter chiffrement (Vault + lib INSEE), profil activable, **buildé et testé en CI**.
+- **`kraftwerk-batch`** : **mode d'exécution principal** (Job Kubernetes) — point d'entrée CLI, adapters (client Genesis déclaratif, moteur DuckDB, écrivains, MinIO), config, observabilité.
+- **`kraftwerk-api`** : exposition REST (controllers, sécurité OIDC) — **utilité à confirmer** (le batch peut suffire). Réutilise les mêmes use cases et adapters que le batch.
+- **`kraftwerk-encryption`** : adapter chiffrement (Vault + lib INSEE **interne, interchangeable**), profil activable, **buildé et testé en CI**.
 
 ---
 
@@ -112,8 +115,9 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 ```
 kraftwerk-parent (pom.xml unique)
 ├── kraftwerk-core          # domaine, use cases, ports ; DuckDB SQL ; BPM
-├── kraftwerk-app           # API + runner batch + adapters + config + observabilité
-└── kraftwerk-encryption    # adapter chiffrement (Vault), profil activable
+├── kraftwerk-batch         # mode principal (Job Kube) : CLI + adapters + config + observabilité
+├── kraftwerk-api           # exposition REST (utilité à confirmer) ; réutilise core + adapters
+└── kraftwerk-encryption    # adapter chiffrement (Vault, interchangeable), profil activable
 ```
 
 - **Un seul chemin de build** : artefact testé en CI = artefact livré (fin de la divergence `pom.xml`/`pom-public.xml`). Le profil « sans chiffrement » substitue un no-op mais **le module reste compilé/testé**.
@@ -179,26 +183,23 @@ interface MetadataPort   { MetadataModel forMode(String partitionId, Mode mode);
 interface TabularEngine  { void ingest(Stream<Interrogation> d); void splitIntoLevels(MetadataModel md);
                            void reconcileModes(); void anonymize(List<String> drop);
                            List<OutputFile> writeParquet(Path dir); List<OutputFile> writeCsv(Path dir); }
-interface StoragePort    { InputStream read(String p); void write(Path local, String target); boolean isAvailable(); }
-interface EncryptionPort { Path encryptArchive(Path zip); }                 // no-op si profil off
+interface StoragePort    { InputStream read(String p); void write(Path local, String target); boolean isAvailable(); } // MinIO en prod
+interface EncryptionPort { Path encrypt(Path data); }                       // interchangeable ; no-op si profil off (D-12/RG-ANO-12)
 interface JobStorePort   { JobId create(JobRequest r); void update(JobId id, JobStatus s, JobResult partial);
-                           Optional<JobExecution> find(JobId id); }         // impl Spring Data JDBC (D-17)
+                           Optional<JobExecution> find(JobId id); }         // impl EN MÉMOIRE, non persistante (D-08/D-17)
 ```
-Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-app`/`kraftwerk-encryption`.
+Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-batch`/`kraftwerk-api`/`kraftwerk-encryption`.
 
 ---
 
 ## 6. Exécution asynchrone et suivi de jobs
 
-- **Déclenchement** : endpoint → `202 Accepted` + `jobId` ; traitement soumis à un exécuteur **virtual-thread-per-task** borné par sémaphore (RG-EXE-01).
-- **Store unifié persistant** derrière `JobStorePort`, en **Spring Data JDBC** avec **schéma versionné Flyway** (D-17) :
-  - **défaut embarqué** : fichier local DuckDB/SQLite (mono-instance) ;
-  - **option PostgreSQL** : dès plusieurs répliques (statut cohérent entre pods).
-- **Statuts** `RUNNING/DONE/PARTIAL/FAILED` (RG-EXE-03) ; résultat = statut + horodatages + résumé + erreurs (RG-EXE-04).
-- **Au redémarrage** : jobs `RUNNING` orphelins marqués `FAILED`/interrompus (CL-EXE-02).
-- Schéma : `job_execution(id, type, partition_id, status, started_at, ended_at, summary_json, errors_json)` (migration Flyway `V1__job_execution.sql`).
+- **Déclenchement** : endpoint (mode API) ou lancement du Job (mode batch) → `202 Accepted` + `jobId` en API ; traitement soumis à un exécuteur **virtual-thread-per-task** borné par sémaphore (RG-EXE-01).
+- **Store de jobs unifié EN MÉMOIRE** derrière `JobStorePort` (D-08/D-17) : une seule structure concurrente (`ConcurrentHashMap`) remplaçant les deux stores mémoire de l'existant. **Aucune persistance, aucune base.**
+- **Suivi au fil de l'eau** : le statut et la progression sont observables pendant le traitement (RG-EXE-02) — statuts `RUNNING/DONE/PARTIAL/FAILED` (RG-EXE-03), résultat = statut + horodatages + résumé + erreurs (RG-EXE-04).
+- **Au redémarrage** : les jobs en cours sont **perdus** — comportement **accepté** (traitements temporaires et **rejouables**, CL-EXE-02) : il suffit de relancer l'export.
 
-> Le MVP démarre sur l'impl embarquée (persistante) ; PostgreSQL se branche au passage multi-instance sans changer le use case (même port).
+> Conséquence Kube : le mode batch s'exécute typiquement comme un **Job** (une exécution = un pod) ; le suivi mémoire vit le temps du traitement. Si un besoin de suivi trans-exécutions apparaissait, il serait ajouté derrière le même port — mais ce n'est **pas** demandé.
 
 ---
 
@@ -217,7 +218,7 @@ Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-ap
 - **Externalisation totale** : aucune valeur d'environnement dans `src/main/resources` livrés ; `application.yml` = défauts non sensibles.
 - **Config typée + validée** (`@ConfigurationProperties` + `jakarta.validation`) (D-22).
 - **Secrets via Vault** ; secrets montés en fichiers lus via `spring.config.import=configtree:` (K8s).
-- Paramètres clés : `batchSize`, backend stockage (`filesystem|minio`), backend job-store (`embedded|postgres`), profil chiffrement, endpoint OTLP, seuils.
+- Paramètres clés : `batchSize`, connexion **MinIO** (backend de stockage en prod ; `filesystem` réservé au dev/test), profil chiffrement, endpoint OTLP, seuils. *(Pas de backend de persistance de jobs : suivi en mémoire.)*
 - Lint CI : absence de chemin absolu / URL de prod dans les resources.
 
 ---
@@ -237,7 +238,7 @@ Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-ap
 ## 10. Tests (pyramide + portes qualité)
 
 - **Unitaires** (JUnit 5, Mockito, AssertJ) sur use cases et logique de reporting (`OUTCOME_SPOTTING`).
-- **Intégration** : `@SpringBootTest` + **Testcontainers avec `@ServiceConnection`** (PostgreSQL quand activé ; DuckDB in-proc sinon).
+- **Intégration** : `@SpringBootTest` ; DuckDB in-proc ; **Testcontainers (avec `@ServiceConnection`)** pour MinIO/Genesis stubbé. *(Pas de base à conteneuriser pour les jobs — suivi en mémoire.)*
 - **Fonctionnels Cucumber** rebâtis sur **stubs Genesis** paramétrés par `partitionId` (cf. `05-couverture-tests-cucumber.md`).
 - **Portes CI bloquantes** (doc 09 §6.2, enrichies) : couverture ≥ seuil ; **ArchUnit** (interdit `fr.insee.vtl.*`/`trevas`, `@*Mapping` hors contrôleur, dépendances de couche) ; **NullAway** (JSpecify) ; **scan vulnérabilités + SBOM** ; **PIT** (mutation) ; build unique testant le chiffrement.
 
@@ -250,7 +251,7 @@ Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-ap
 | Couplage VTL (99 réf./31 fichiers) | Supprimé ; SQL DuckDB ; garde-fou ArchUnit |
 | `BatchExportService` clone de `MainService` | Point d'entrée unique ; batch = runner fin sur le même use case |
 | Pas de `@ControllerAdvice` | `@RestControllerAdvice` unique → `ProblemDetail` (RFC 9457) |
-| Job store non exposé / non persistant | `JobStorePort` (Spring Data JDBC + Flyway), unifié + persistant |
+| Job store non exposé / doublonné | `JobStorePort` **unifié en mémoire** (non persistant — suivi temporaire rejouable, décision client) |
 | Divergence `pom.xml`/`pom-public.xml` | POM unique, build = livraison |
 | Config en dur (chemins Windows, URL prod) | Config typée externalisée + Vault + lint CI |
 | Chiffrement non testé en CI | Module compilé et testé en CI |
@@ -260,4 +261,4 @@ Le cœur ne connaît que ces interfaces ; les adapters vivent dans `kraftwerk-ap
 
 ## 12. Trajectoire technique
 
-Les incréments suivent le backlog (`../3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md`). Ordre logique : **fondations** (artefact unique, ports/adapters, client Genesis déclaratif + Resilience4j, CI + portes qualité + SBOM, CDS) → **MVP** (acquisition → structure → Parquet) → **CSV/R, multimode SQL, JSON, reporting, anonymisation, chiffrement/MinIO, job store persistant (Flyway), sécurité/rôles, observabilité OTel** → **évolutions** (lot, multimode sans réconciliation, codification, date T). L'image native (E-01) et le contract testing (E-05) sont évalués en cours de route, non requis pour la cible.
+Les incréments suivent le backlog (`../3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md`). Ordre logique : **fondations** (core + batch (+ api ?), ports/adapters, client Genesis déclaratif + Resilience4j, CI + portes qualité + SBOM, CDS) → **MVP** (acquisition → structure → Parquet sur MinIO) → **CSV/R, multimode SQL, suivi de jobs en mémoire unifié, JSON, reporting, chiffrement, observabilité OTel** → **plus tard** (anonymisation, mode sans-DDI, script de post-traitement) → **évolutions** (multimode sans réconciliation, codification, date T). L'image native (E-01) et le contract testing (E-05) sont évalués en cours de route, non requis pour la cible.

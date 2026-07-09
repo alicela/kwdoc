@@ -16,7 +16,7 @@ Chaque table (racine, chaque boucle) est produite en CSV **et** en Parquet.
 ### RG-CSV-02 — Un fichier par table
 Il y a un fichier par dataset : `<campagne>_RACINE.csv/.parquet`, et `<campagne>_<NOM_BOUCLE>.csv/.parquet` par boucle. Plus, le cas échéant, `<campagne>_REPORTINGDATA.csv/.parquet` (domaine `REP`).
 - **Source** : code (`OutputFiles.setOutputDatasetNames`, `CsvOutputFiles`/`ParquetOutputFiles` : `<parent>_<datasetName>.<ext>`) ; tests (noms de fichiers vérifiés).
-- **Statut cible** : 🔵 Adapté — convention de nommage à figer pour la cible (le préfixe « campagne » vient aujourd'hui du nom de dossier ; en cible par `partitionId`, définir le préfixe : `partitionId` ? nom d'enquête ?).
+- **Statut cible** : 🔵 Adapté — le préfixe de nommage cible est le **`shortLabel` de la partition** (client 2026-07-09) : `<shortLabel>_RACINE.*`, `<shortLabel>_<BOUCLE>.*`, `<shortLabel>_REPORTINGDATA.*`.
 
 ### RG-CSV-03 — Séparateur CSV
 Le séparateur de colonnes CSV est `;` (`Constants.CSV_OUTPUTS_SEPARATOR = ';'`).
@@ -67,6 +67,11 @@ Chaque exécution produit un fichier de log (existant : nom préfixé `<campagne
 Les sorties d'une exécution sont rangées dans un sous-dossier daté (une exécution = un sous-dossier), permettant de conserver plusieurs exécutions.
 - **Source** : code (structure `out/<campagne>/<date>`) ; tests (les vérifications ciblent « le dernier sous-dossier d'exécution ») ; guide (`enqgenesis.md` : « sous-dossiers par date d'extraction »).
 - **Statut cible** : 🟢 Conservé.
+
+### RG-CSV-13 — Post-traitement par script utilisateur sur les tables finales (nouveau)
+La cible offre la possibilité de faire passer un **script utilisateur sur les tables finales dans DuckDB**, avant écriture des sorties. Langage privilégié : **SQL** (exécuté dans DuckDB) ; **R** à l'étude. Ce point remplace l'usage des anciens « scripts aval » et fournit le point d'extension de la transformation multimode (RG-MULTI-05).
+- **Source** : décision client (2026-07-09).
+- **Statut cible** : 🟠 À concevoir — périmètre des langages autorisés, sécurité d'exécution (script SQL maîtrisé vs arbitraire), interface de fourniture du script.
 
 ---
 

@@ -13,10 +13,10 @@ Un traitement d'export est déclenché de façon asynchrone : l'appel renvoie im
 - **Source** : code (endpoints `/main*` renvoient 202 + jobId, exécutés via l'exécuteur `kraftwerkExecutor`) ; guide (`enqgenesis.md`).
 - **Statut cible** : 🟢 Conservé.
 
-### RG-EXE-02 — Suivi de statut unifié et persistant
-La cible expose un **unique** mécanisme de suivi de statut de job, cohérent pour tous les traitements asynchrones, dont l'état **survit à un redémarrage** de l'application.
-- **Source** : décision client (point D de `04-comparaison-code-tests-guide.md`).
-- **Statut cible** : 🟠 À concevoir. L'existant a deux stores en mémoire non interopérables (`InMemoryJobStore`, `InMemoryExportJobStore`), non persistants, dont l'un semble ne jamais être exposé en HTTP (`05-anomalies-code.md` points 1-2). La cible doit unifier et persister (base de données / autre).
+### RG-EXE-02 — Suivi de statut unifié « au fil de l'eau », **non persistant**
+La cible expose un **unique** mécanisme de suivi de statut de job, cohérent pour tous les traitements asynchrones, permettant d'**observer la progression au fil de l'eau**. Ce suivi **n'a pas à être persisté** : en cas de plantage serveur, les traitements en cours sont perdus — **ce n'est pas grave, tout est temporaire et rejouable**. Un **stockage en mémoire** suffit.
+- **Source** : décision client (2026-07-09 — **révise** le point D de `04-comparaison-code-tests-guide.md`, qui demandait un suivi persistant).
+- **Statut cible** : 🔵 Adapté — **unifier** les deux stores en mémoire existants (`InMemoryJobStore`, `InMemoryExportJobStore`) et **exposer correctement** le statut (l'un n'était jamais routé, `05-anomalies-code.md` points 1-2) ; **sans persistance**.
 
 ### RG-EXE-03 — Statuts de job
 Un job passe par des statuts : en cours, terminé, terminé avec avertissements (partiel), échoué.
@@ -42,10 +42,17 @@ La surface d'API cible se limite aux traitements Genesis (par `partitionId`) : e
 - **Source** : décisions client (Genesis-only, partitionId).
 - **Statut cible** : 🔵 Adapté / 🔴 Supprimé (pour les endpoints legacy).
 
-### RG-EXE-11 — Endpoints « pas-à-pas » et « split » : à réévaluer
-L'existant expose des endpoints de pilotage étape par étape (`/steps/**`) et de découpage de gros fichiers XML (`/split/lunatic-xml`).
-- **Source** : code (`StepByStepService`, `SplitterService`).
-- **Statut cible** : 🔴 Supprimé (probable) — `/split/lunatic-xml` traite des fichiers XML locaux (mode supprimé) ; les `/steps/**` dupliquent l'orchestration et exposent des étapes internes. À confirmer, mais a priori hors cible.
+### RG-EXE-11 — « Pas-à-pas » et « split » supprimés ; diagnostic repensé
+- Le **pas-à-pas** (`/steps/**`) servait surtout à observer les **datasets VTL à chaque étape** → **sans objet** puisque VTL est retiré : **supprimé**.
+- Le **découpage de fichiers XML volumineux** (`/split/lunatic-xml`) traite des fichiers locaux (mode supprimé) : **supprimé**.
+- **Besoin de diagnostic conservé** (formats variés, erreurs imprévisibles) : le **debug par interrogation** (RG-JSON-08) est **utile à la MOA** et conservé ; piste complémentaire à l'étude : **inspecter la base DuckDB de travail** (voir les tables intermédiaires d'une exécution).
+- **Source** : décision client (2026-07-09) ; code (`StepByStepService`, `SplitterService`).
+- **Statut cible** : 🔴 Supprimé (`/steps/**`, `/split/**`) + 🟠 À concevoir (inspection DuckDB).
+
+### RG-EXE-14 — Séparation API / Batch
+API et Batch sont **séparés** (modules/artefacts distincts partageant le cœur métier). Le déploiement cible étant sur **Kubernetes**, le **mode batch** (Job) est le mode d'exécution principal ; **l'utilité du mode API reste à confirmer**.
+- **Source** : décision client (2026-07-09 — révise l'option « artefact unique » envisagée le 2026-07-09 plus tôt).
+- **Statut cible** : 🔵 Adapté / 🟠 Point ouvert (utilité de l'API).
 
 ### RG-EXE-12 — Documentation API (OpenAPI/Swagger)
 L'API est documentée via OpenAPI/Swagger, avec un schéma de sécurité conditionnel (aucune auth / OIDC).
@@ -106,7 +113,7 @@ Les erreurs remontent des codes HTTP appropriés (400 paramètre invalide, 404 i
 ## Edge cases
 
 - **CL-EXE-01** — **`jobId` invalide/inconnu** : format non-UUID → 400 ; UUID inconnu → 404 — avec une vraie réponse HTTP structurée (pas une exception non gérée comme aujourd'hui).
-- **CL-EXE-02** — **Redémarrage pendant un job** : après persistance (RG-EXE-02), le statut d'un job antérieur reste consultable (statut cohérent : marqué échoué/interrompu si non repris).
+- **CL-EXE-02** — **Redémarrage pendant un job** : le suivi étant **non persistant** (RG-EXE-02), les jobs en cours sont **perdus** au redémarrage — comportement **accepté** (traitements temporaires et rejouables). Il suffit de relancer l'export.
 - **CL-EXE-03** — **Genesis injoignable** : à l'appel d'export → échec propre du job (`FAILED` + message) ; au health-check → statut dégradé (et non plantage de la requête, cf. RG-EXE-13).
 - **CL-EXE-04** — **JWT expiré / rôle manquant** : 401 / 403 explicites.
 - **CL-EXE-05** — **Vault/MinIO indisponibles** : cf. domaine `ANO` — le job échoue proprement sans laisser de sortie en clair ni d'état incohérent.

@@ -25,10 +25,10 @@ La fusion réalise l'union des colonnes de tous les modes : une variable présen
 - **Source** : code (`ReconciliationProcessing` calcule les mesures communes/absentes entre modes).
 - **Statut cible** : 🔵 Adapté.
 
-### RG-MULTI-04 — Harmonisation des types divergents
-Quand une même variable a des types différents selon les modes (ex. entier dans un mode, décimal dans un autre), le type est harmonisé (l'existant convertit les entiers en `number`).
-- **Source** : code (`ReconciliationProcessing` lignes ~217-236).
-- **Statut cible** : 🔵 Adapté — règle d'harmonisation à réexprimer en SQL/typage DuckDB ; les règles de promotion de type sont à spécifier précisément (voir CL-MULTI-02).
+### RG-MULTI-04 — Divergence de type entre modes = cas d'exception, pas d'harmonisation silencieuse
+En principe une même variable porte le **même type dans tous les modes** (les DDI sont normalement identiques). Il **ne devrait donc pas** y avoir de divergence de type. Si une divergence survient malgré tout, la cible **ne doit pas harmoniser silencieusement** : elle doit produire une **erreur lisible et exploitable par l'utilisateur** ; en **solution d'attente**, on peut **créer deux colonnes distinctes** (une par type) le temps de corriger la source.
+- **Source** : décision client (2026-07-09) — révise le comportement de l'existant (`ReconciliationProcessing` convertissait entier→`number`).
+- **Statut cible** : 🔵 Adapté — remplacer l'harmonisation implicite par une **gestion d'erreur explicite** (+ double colonne en repli).
 
 ### RG-MULTI-05 — Point d'extension « transformation multimode »
 Après la fusion, un point de personnalisation permettait d'appliquer des traitements supplémentaires sur le jeu multimode (gestion de doublons inter-modes, etc.).
@@ -50,6 +50,6 @@ Toute la mécanique de réconciliation (union, jointure, ajout de `MODE_KRAFTWER
 ## Edge cases
 
 - **CL-MULTI-01** — **Variable présente dans un seul mode** : doit apparaître dans le multimode, avec valeur vide/nulle pour les lignes des autres modes.
-- **CL-MULTI-02** — **Conflit de type sur une même variable entre modes** (ex. `INTEGER` vs `STRING`, pas seulement `INTEGER` vs `NUMBER`) : la règle d'harmonisation actuelle ne couvre que le cas entier→number. Les autres conflits de type doivent être spécifiés (promotion, erreur, ou valeur convertie en chaîne).
+- **CL-MULTI-02** — **Conflit de type sur une même variable entre modes** : anomalie non attendue (DDI censés identiques). Comportement cible (RG-MULTI-04) : **erreur lisible** signalant la variable et les types en conflit ; **repli** possible en **deux colonnes** distinctes. Pas de conversion silencieuse.
 - **CL-MULTI-03** — **Même interrogation présente dans deux modes (doublon inter-mode)** : le guide évoque une gestion manuelle par script ; la cible doit définir une règle par défaut (garder les deux lignes distinguées par `MODE_KRAFTWERK` ? dédupliquer ? prioriser un mode ?).
 - **CL-MULTI-04** — **Modes avec structures de boucles différentes** : la fusion doit se faire niveau d'information par niveau d'information ; le comportement quand une boucle existe dans un mode et pas dans l'autre est à préciser.
