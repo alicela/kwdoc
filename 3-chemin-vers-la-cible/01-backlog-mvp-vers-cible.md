@@ -47,8 +47,11 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-0.6 | **Moteur DuckDB** de travail (ingestion via appender, base éphémère par job, écriture) — squelette | Cœur du traitement ensembliste | M |
 | US-0.7 | **Docker multi-stage** rootless + `HEALTHCHECK` + **CDS/AOT cache** + config typée externalisée (zéro valeur en dur) | Déploiement propre, démarrage/mémoire (dette D9 ; D-20/D-22) | S |
 | US-0.8 | **Socle observabilité & erreurs** : Micrometer Observation + tracing **OTLP**, contexte par **ScopedValue**, `@RestControllerAdvice`→**ProblemDetail (RFC 9457)**, Actuator health groups | Observabilité et contrat d'erreur dès le départ (D-14/D-15/D-16/D-23) | M |
+| **US-0.9** | **Créer l'endpoint Genesis de lecture par `partitionId`** (côté Genesis) : renvoie les interrogations d'une partition en **cumulant les modes**, paginé (`batchSize`), avec les champs attendus (`interrogationId`, `usualSurveyUnitId`, `collectionInstrument`, `mode`, `questionnaireState`, `validationDate`, `isCapturedIndirectly`, variables collectées/externes/calculées, `shortLabel` de partition) ; sécurisé OIDC ; **OpenAPI publié**. | **Prérequis dur** de US-0.4 / US-1.1 — l'appel par `partitionId` n'existe pas aujourd'hui (Genesis expose `campaignId`/`questionnaireModelId`). **Équipe Genesis.** | L |
 
 **CA transverses** : `mvn verify` échoue si couverture < seuil ou si un import `fr.insee.vtl.*`/`trevas` est présent ; l'artefact testé en CI = l'artefact livré.
+
+> **Dépendances / prérequis levés** : infrastructure **Kubernetes prête** ; **BPM prêt** (US-0.5 = simple intégration de la lib). Le prérequis restant est **US-0.9** (endpoint Genesis par `partitionId`), à mener **en parallèle** par l'équipe Genesis — il conditionne la démo d'EPIC-1. Tant qu'il n'est pas livré, US-0.4/US-1.1 se développent contre un **stub Genesis** (`GenesisClientStub`) respectant le contrat OpenAPI cible.
 
 ---
 
@@ -58,7 +61,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
-| US-1.1 | Acquérir une partition Genesis par `partitionId` (paginé, virtual threads) | RG-ACQ-01/02/06 | TEST-ACQ-01 | L |
+| US-1.1 | Acquérir une partition Genesis par `partitionId` (paginé, virtual threads) — **dépend de US-0.9** (endpoint Genesis) ; développable sur stub en attendant | RG-ACQ-01/02/06 | TEST-ACQ-01 | L |
 | US-1.2 | Ingérer les variables reçues **sans aucun calcul** (collectées/externes/calculées telles quelles) | RG-ACQ-03 | TEST-ACQ-08 | M |
 | US-1.3 | Construire le schéma des niveaux d'information depuis les métadonnées BPM (RACINE + boucles) | RG-ACQ-07, RG-STR-01/06 | TEST-STR-01 | L |
 | US-1.4 | Répartir les variables en table **RACINE** (identifiants + variables d'unité) — en **SQL DuckDB** | RG-STR-02/05 | TEST-STR-01 | M |
