@@ -143,12 +143,15 @@ Principe : **Java orchestre l'I/O, DuckDB fait le calcul ensembliste.** Objectif
    - fan-out borné (sémaphore) ; StructuredTaskScope quand finalisé (E-03)
 2. STRUCTURE (SQL ensembliste)
    - métadonnées BPM → schéma des niveaux (RACINE + boucles)
+   - ANONYMISATION (option) = schéma effectif = colonnes des métadonnées MOINS les variables anonymisées
+     → colonnes jamais matérialisées (exclusion EN AMONT, pas de drop en fin ; RG-ANO-03)
    - split par niveau = requêtes SQL (pas de reconstruction par parsing de noms — CL-STR-03)
 3. RÉCONCILIATION MULTIMODE (SQL ensembliste) — si ≥ 2 modes
-   - UNION des modes + colonne MODE_KRAFTWERK + harmonisation de types
-4. ANONYMISATION (SQL) — option : SELECT * EXCLUDE (...) AVANT écriture
+   - UNION des modes + colonne MODE_KRAFTWERK (types censés concordants — sinon erreur, RG-MULTI-04)
+4. POST-SCRIPT (option) : script SQL/R sur les tables finales (RG-CSV-13)
 5. ÉCRITURE (streaming DuckDB) : COPY … TO … (FORMAT PARQUET) / (FORMAT CSV, …) ; spill géré par DuckDB
-6. POST (option) : script R, archivage ZIP, chiffrement, upload MinIO
+   - filet : SELECT * EXCLUDE(<anonymisées>) à l'export (défense en profondeur, coût nul)
+6. POST (option) : archivage ZIP, chiffrement, upload MinIO
 ```
 
 **Modèle DuckDB** (schéma par niveau, aligné RG-STR) :
@@ -214,6 +217,7 @@ String colExpr(Variable v) {                       // une colonne = une variable
 ```
 - **Sécurité** : les `var_id`/noms proviennent du modèle de métadonnées (allowlist) ; `quoteIdent`/`sqlLit` protègent l'injection et les caractères spéciaux (dont le `.`). Pas de SQL utilisateur ici (le script de post-traitement RG-CSV-13 est un sujet distinct).
 - **États (`addStates`)** : mêmes colonnes suffixées `_STATE` par agrégation sur la colonne `state`, en excluant `FILTER_RESULT_*`/`*_MISSING` (RG-ACQ-11).
+- **Anonymisation = en amont, dans ce même SQL-builder** (RG-ANO-03) : on **retire les variables anonymisées de la liste de colonnes** avant de générer les `colExpr` → les colonnes ne sont **jamais matérialisées** (ni ingérées/pivotées/réconciliées/exportées). Pas de `DROP COLUMN` en fin. Config validée en amont : **interdit d'exclure une variable identifiante/structurante** (CL-ANO-02). Filet à l'export : `COPY (SELECT * EXCLUDE(<anonymisées>))` (défense en profondeur, coût nul).
 - **Erreurs de cast** (valeur non conforme au type déclaré) : collectées comme erreurs **récupérables** → statut `PARTIAL`, colonne à `NULL` (RG-EXE-31), plutôt que d'échouer tout le job.
 - **Multimode** : le pivot est unimodal (staging filtré/portant `mode`) ; la réconciliation (UNION + `MODE_KRAFTWERK`) est l'étape SQL suivante (EPIC-3).
 

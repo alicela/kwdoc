@@ -171,14 +171,14 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 ---
 
 ## EPIC-9 — Anonymisation (V4)
-**But** : suppression de colonnes paramétrée par enquête (nouvelle fonctionnalité).
-⏸️ **Non requise pour la première enquête qui utilisera KW2** (client 2026-07-09) → planifier après la première mise en production.
+**But** : suppression de colonnes paramétrée par enquête, **appliquée en amont** (exclusion des variables du schéma/pivot → jamais matérialisées ; RG-ANO-03).
+⏸️ **Non requise pour la première enquête qui utilisera KW2** (client 2026-07-09) → planifier après la première mise en production. *Comme le pivot est piloté par les métadonnées, l'ajout se réduit à un filtre de la liste de colonnes + un filet à l'export.*
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
-| US-9.1 | Concevoir le **format de config d'anonymisation par enquête** (décision O-01) | RG-ANO-02 | — | M |
-| US-9.2 | Supprimer les colonnes configurées de **toutes** les tables (SQL), **avant** écriture | RG-ANO-01/03/04 | TEST-ANO-01/02 | M |
-| US-9.3 | Cas : variable inexistante (ignorer/signaler), exclusion d'un identifiant (interdire ?) | CL-ANO-01/02 | TEST-ANO-04 | S |
+| US-9.1 | Concevoir le **format de config d'anonymisation par enquête** (décision O-01) + **validation** (refus d'exclure une variable identifiante) | RG-ANO-02 / CL-ANO-02 | — | M |
+| US-9.2 | **Exclure les variables anonymisées EN AMONT** : filtrer la liste de colonnes du schéma/pivot (non-matérialisation) — pas de `DROP` en fin | RG-ANO-01/03/04 | TEST-ANO-01/02 | S |
+| US-9.3 | **Filet à l'export** : `COPY (SELECT * EXCLUDE(<anonymisées>))` (défense en profondeur) ; cas variable inexistante (ignorer/signaler) | CL-ANO-01 | TEST-ANO-04 | S |
 
 ---
 

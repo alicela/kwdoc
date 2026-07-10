@@ -20,13 +20,14 @@ La liste des colonnes à supprimer est **paramétrable par enquête** (configura
 - **Source** : décision client (2026-07-08 : « à paramétrer selon l'enquête »).
 - **Statut cible** : 🟠 À concevoir — le format exact de cette configuration par enquête (où elle est stockée, comment elle est fournie à Kraftwerk) est à définir en conception.
 
-### RG-ANO-03 — Anonymisation avant écriture (et avant archivage/chiffrement)
-Les colonnes exclues doivent être absentes des fichiers de sortie (CSV, Parquet, JSON) — pas seulement masquées — et l'exclusion doit intervenir **avant** tout archivage/chiffrement (cf. CL-ANO-05).
-- **Source** : décision client.
-- **Statut cible** : 🟠 À concevoir.
+### RG-ANO-03 — Anonymisation EN AMONT : exclusion à la génération du schéma (non-matérialisation)
+Les colonnes anonymisées doivent être **absentes** des sorties (pas masquées). **Décision de conception (2026-07-10) : exclure en amont plutôt que dropper à la fin.** Concrètement, les variables anonymisées sont **retirées de la liste de colonnes issue des métadonnées** avant la génération du pivot → elles **ne sont jamais matérialisées** dans les tables de travail (ni ingérées/pivotées/réconciliées/exportées). Un **`SELECT * EXCLUDE(...)` à l'export** est conservé comme **filet de défense en profondeur** (coût nul). L'exclusion intervient donc bien avant tout archivage/chiffrement (cf. CL-ANO-05).
+- **Justification** : (a) **simplicité** — c'est un filtre sur la liste de colonnes déjà pilotée par les métadonnées (pivot §4.1), pas une étape supplémentaire, appliqué uniformément à tous les niveaux ; (b) **performance** — on n'ingère/pivote/réconcilie/exporte jamais ces colonnes, ce qui allège notamment l'`append` (writer unique, goulot) et la mémoire ; (c) **minimisation/sécurité** — les données sensibles ne vivent pas dans la base DuckDB de travail (cohérent avec le chiffrement « tout au long » RG-ANO-11 et le diagnostic par inspection DuckDB RG-EXE-11).
+- **Source** : décision client + arbitrage de conception 2026-07-10 ; cf. spec technique §4.1.
+- **Statut cible** : 🟠 À concevoir (exclusion en amont + filet à l'export).
 
-### RG-ANO-04 — Portée par table
-La suppression s'applique par table (RACINE, boucles, reporting), une même variable pouvant devoir être supprimée dans plusieurs tables. La configuration doit permettre de cibler les colonnes indépendamment du niveau d'information.
+### RG-ANO-04 — Portée uniforme sur tous les niveaux
+La suppression s'applique à **tous les niveaux** (RACINE, boucles, reporting) où la variable apparaît. Le filtre étant appliqué **uniformément** sur la liste de colonnes des métadonnées, la cohérence inter-niveaux et inter-modes est **assurée par construction** (une variable exclue l'est partout, quel que soit le mode → pas de désalignement à la réconciliation).
 - **Source** : décision client (« drop des colonnes de tables »).
 - **Statut cible** : 🟠 À concevoir.
 
@@ -84,7 +85,7 @@ L'existant sait archiver/renommer les fichiers d'entrée traités (`MinioImpl.ar
 ## Edge cases
 
 - **CL-ANO-01** — **Variable à exclure inexistante** : anonymisation demandée sur une variable absente des données → ignorer silencieusement ou signaler ? À définir.
-- **CL-ANO-02** — **Exclusion d'une variable identifiante** (`interrogationId`) : faut-il l'interdire (risque de rendre la sortie inexploitable) ou l'autoriser ?
+- **CL-ANO-02** — **Exclusion d'une variable identifiante / structurante** (`interrogationId`, `usualSurveyUnitId`, identifiant d'occurrence) : **interdite**. Comme l'exclusion se fait en amont (RG-ANO-03), la config d'anonymisation est **validée** au chargement : toute tentative d'exclure une variable identifiante/structurante est **rejetée** (erreur de configuration explicite), pour ne pas casser le pivot, la réconciliation ni l'exploitabilité de la sortie.
 - **CL-ANO-03** — **Vault indisponible** au moment du chiffrement : comportement attendu (échec explicite du job, pas de sortie en clair laissée).
 - **CL-ANO-04** — **MinIO indisponible** alors que `minio.enable=true` : échec ou bascule sur disque ? (l'ancienne cible évoquait un fallback ; à décider).
 - **CL-ANO-05** — **Chiffrement + anonymisation combinés** : l'anonymisation doit s'appliquer **avant** l'archivage/chiffrement (sinon des données sensibles se retrouvent dans l'archive chiffrée mais restituées au déchiffrement).

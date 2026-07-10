@@ -76,7 +76,7 @@ Kraftwerk est le service de **mise en forme et d'export des données d'enquête*
  └────────┬────────┘
           ▼
  ┌─────────────────┐   RG-ANO-01..04 (option, hors MVP)
- │ 5. ANONYMISATION  │  suppression des colonnes configurées par enquête
+ │ 5. ANONYMISATION  │  exclusion EN AMONT : colonnes retirées du schéma (jamais matérialisées) ; filet EXCLUDE à l'export
  └────────┬────────┘
           ▼
  ┌─────────────────┐   RG-CSV-13 (option)
@@ -137,7 +137,7 @@ Production d'un fichier `<préfixe>_REPORTINGDATA.csv/.parquet` **séparé** du 
 **Points ouverts** : unifier les deux points d'entrée (Genesis vs fichier) autour de Genesis (🔵 RG-REP-02) ; `TYPE_SPOTTING` absent → repli `HOUSEF2F` (CL-REP-01) ; schéma variable selon nb d'occurrences (CL-REP-04).
 
 ### 5.8 Anonymisation — `ANO`
-Fonctionnalité formalisée : l'anonymisation = **suppression de colonnes** des tables produites (🟠 RG-ANO-01), selon une **liste paramétrée par enquête** (🟠 RG-ANO-02), applicable à toutes les tables (racine, boucles, reporting — 🟠 RG-ANO-04), **avant** écriture et avant tout archivage/chiffrement (🟠 RG-ANO-03/CL-ANO-05). Remplace l'usage principal des anciens « scripts aval ».
+Fonctionnalité formalisée : l'anonymisation = **suppression de colonnes** (🟠 RG-ANO-01), selon une **liste paramétrée par enquête** (🟠 RG-ANO-02), appliquée **en amont** : les variables anonymisées sont **retirées du schéma dès la mise en forme** et **jamais matérialisées** (plutôt qu'un drop en fin de chaîne) — plus simple, plus performant et minimisant l'exposition des données sensibles (🟠 RG-ANO-03). Portée uniforme sur tous les niveaux (racine, boucles, reporting — 🟠 RG-ANO-04) ; **interdit d'exclure une variable identifiante** (CL-ANO-02) ; filet `EXCLUDE` à l'export. Remplace l'usage principal des anciens « scripts aval ».
 
 ⏸️ **Non requise pour la première enquête qui utilisera KW2** → à planifier plus tard, pas dans le MVP.
 
