@@ -4,6 +4,8 @@ Documentation de l'analyse et de la conception de la refonte de **Kraftwerk** (s
 
 La documentation est organisée en **trois temps** : d'où l'on part (**existant**), où l'on va (**cible**), et comment on y va (**chemin vers la cible**).
 
+> 👉 **Nouveau sur le projet / présentation à l'équipe ?** Commencez par **[PRESENTATION.md](./PRESENTATION.md)** — résumé 1 page (choix actés + décisions à prendre).
+
 > **Méthodologie** : les documents marqués ✅ *vérifié* sont ancrés dans le code (`fichier:ligne`). Certains documents initiaux (« Mistral Vibe ») non vérifiés ont été soit corrigés en place, soit archivés en annexe lorsqu'ils sont dépassés — c'est signalé au cas par cas.
 
 ---
