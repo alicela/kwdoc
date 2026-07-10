@@ -159,6 +159,60 @@ CREATE TABLE loop_<boucle>(interrogation_id, occurrence_id, <vars boucle> …, P
 ```
 Base de travail DuckDB éphémère par job (ingestion via l'**appender** natif pour la performance). Parquet produit nativement (pas de dépendance Parquet dédiée — anomalie 08 §13).
 
+### 4.1 Pivot « lignes de variables → tables larges par niveau » (design du cœur MVP)
+
+**Problème.** Genesis renvoie les données en **lignes de variables** (`interrogationId, varId, value, scope, iteration`, + champs fixes). La sortie attendue est, **par niveau d'information**, une **table large** : une colonne par variable, une ligne par interrogation (RACINE) ou par occurrence (boucle). Les colonnes sont **dynamiques** (elles dépendent de l'enquête).
+
+**Principe retenu : pivot PILOTÉ PAR LES MÉTADONNÉES (BPM), pas par les données.** Le schéma de chaque niveau (liste des variables + types) vient du **modèle de métadonnées BPM**, pas des valeurs observées. Avantages : (a) **schéma stable** d'une partition à l'autre (une variable sans valeur donne une colonne `NULL`, elle ne disparaît pas) ; (b) **typage explicite** ; (c) on **n'reconstruit jamais la hiérarchie en parsant les noms à points** (résout la fragilité CL-STR-03) : le rattachement à un niveau se fait par `scope`, fourni par la donnée et validé par les métadonnées.
+
+**Étapes.**
+1. **Staging** : insertion des lignes de variables dans une table DuckDB de travail via l'**Appender** (rapide, hors heap Java).
+2. **Génération du SQL par niveau** : pour chaque groupe du modèle BPM (RACINE + une boucle par groupe), un petit **SQL-builder Java** émet un `CREATE TABLE … AS SELECT` par **agrégation conditionnelle** (`… FILTER (WHERE var_id = …)`), une colonne par variable du niveau, castée au type cible.
+3. **Identifiant d'occurrence** pour les boucles : calculé par fenêtre (`dense_rank`) sur `iteration`.
+4. Écriture Parquet/CSV par `COPY`.
+
+**Exemple SQL (illustratif).**
+```sql
+-- RACINE : GROUP BY interrogation ; colonnes = variables scope=RACINE (métadonnées)
+CREATE TABLE racine AS
+SELECT interrogation_id,
+       any_value(usual_su_id)         AS "usualSurveyUnitId",
+       any_value(questionnaire_state) AS "questionnaireState",
+       any_value(validation_date)     AS "validationDate",
+       CAST(max(value) FILTER (WHERE var_id='AGE')  AS BIGINT)  AS "AGE",
+       CAST(max(value) FILTER (WHERE var_id='SEXE') AS VARCHAR) AS "SEXE"
+       -- … une ligne générée par variable du niveau RACINE
+FROM staging WHERE scope='RACINE'
+GROUP BY interrogation_id;
+
+-- BOUCLE : GROUP BY (interrogation, iteration) ; 1 ligne par occurrence
+CREATE TABLE loop_BOUCLE_PRENOMS AS
+SELECT interrogation_id,
+       'BOUCLE_PRENOMS-' || lpad(CAST(dense_rank() OVER w AS VARCHAR), 2, '0') AS "occurrence_id",
+       CAST(max(value) FILTER (WHERE var_id='PRENOM') AS VARCHAR) AS "PRENOM",
+       CAST(max(value) FILTER (WHERE var_id='LIEN_1') AS VARCHAR) AS "LIEN_1"
+FROM staging WHERE scope='BOUCLE_PRENOMS'
+GROUP BY interrogation_id, iteration
+WINDOW w AS (PARTITION BY interrogation_id ORDER BY iteration);
+```
+
+**Génération dynamique (côté Java).** À partir du `MetadataModel` BPM :
+```java
+String colExpr(Variable v) {                       // une colonne = une variable
+  return "CAST(max(value) FILTER (WHERE var_id=" + sqlLit(v.id()) + ") AS "
+       + duckType(v.type()) + ") AS " + quoteIdent(v.name());
+}
+// duckType : STRING→VARCHAR, INTEGER→BIGINT, NUMBER→DOUBLE, BOOLEAN→BOOLEAN, DATE→DATE
+```
+- **Sécurité** : les `var_id`/noms proviennent du modèle de métadonnées (allowlist) ; `quoteIdent`/`sqlLit` protègent l'injection et les caractères spéciaux (dont le `.`). Pas de SQL utilisateur ici (le script de post-traitement RG-CSV-13 est un sujet distinct).
+- **États (`addStates`)** : mêmes colonnes suffixées `_STATE` par agrégation sur la colonne `state`, en excluant `FILTER_RESULT_*`/`*_MISSING` (RG-ACQ-11).
+- **Erreurs de cast** (valeur non conforme au type déclaré) : collectées comme erreurs **récupérables** → statut `PARTIAL`, colonne à `NULL` (RG-EXE-31), plutôt que d'échouer tout le job.
+- **Multimode** : le pivot est unimodal (staging filtré/portant `mode`) ; la réconciliation (UNION + `MODE_KRAFTWERK`) est l'étape SQL suivante (EPIC-3).
+
+**Alternative écartée** : le `PIVOT … ON var_id` natif de DuckDB **infère les colonnes des données** (schéma instable entre partitions, tout en `VARCHAR`) → non retenu pour la cible ; l'agrégation conditionnelle pilotée par métadonnées est préférée.
+
+**Points à trancher** : numérotation d'occurrence — `dense_rank` (occurrences contiguës 1..N) **vs** `iteration` brut de Genesis (CL-STR-04) ; représentation des grands entiers/décimaux à l'écriture (RG-CSV-06 : `BIGINT` évite la notation scientifique).
+
 ---
 
 ## 5. Contrats de ports (esquisse)

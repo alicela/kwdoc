@@ -61,11 +61,12 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
+| **US-1.0** 🔬 | **SPIKE — pivot « lignes de variables → tables larges par niveau »** : valider l'approche **agrégation conditionnelle pilotée par les métadonnées BPM** (colonnes = variables du niveau, typage, occurrence par `dense_rank`) sur un jeu réel RACINE + 1 boucle. **Solution technique proposée : spec technique §4.1.** Livrable : SQL-builder + POC mesuré (mémoire/temps) + décision `dense_rank` vs `iteration` (CL-STR-04) | RG-STR-01/03/04/06, CL-STR-03/04 | — | M |
 | US-1.1 | Acquérir une partition Genesis par `partitionId` (paginé, virtual threads) — **dépend de US-0.9** (endpoint Genesis) ; développable sur stub en attendant | RG-ACQ-01/02/06 | TEST-ACQ-01 | L |
 | US-1.2 | Ingérer les variables reçues **sans aucun calcul** (collectées/externes/calculées telles quelles) | RG-ACQ-03 | TEST-ACQ-08 | M |
 | US-1.3 | Construire le schéma des niveaux d'information depuis les métadonnées BPM (RACINE + boucles) | RG-ACQ-07, RG-STR-01/06 | TEST-STR-01 | L |
-| US-1.4 | Répartir les variables en table **RACINE** (identifiants + variables d'unité) — en **SQL DuckDB** | RG-STR-02/05 | TEST-STR-01 | M |
-| US-1.5 | Répartir les variables de boucle en **tables de boucle** avec identifiant d'occurrence `<BOUCLE>-<NN>` | RG-STR-03/04 | TEST-STR-02/03 | M |
+| US-1.4 | Répartir les variables en table **RACINE** (identifiants + variables d'unité) — SQL DuckDB, **selon le pivot §4.1** | RG-STR-02/05 | TEST-STR-01 | M |
+| US-1.5 | Répartir les variables de boucle en **tables de boucle** avec identifiant d'occurrence `<BOUCLE>-<NN>` — **pivot §4.1** | RG-STR-03/04 | TEST-STR-02/03 | M |
 | US-1.6 | Écrire chaque table en **Parquet** (`COPY … TO … FORMAT PARQUET`) **sur MinIO**, dans un sous-dossier d'exécution, préfixe `<shortLabel>` | RG-CSV-01/02/08/12, RG-ANO-21 | TEST-CSV-02 | M |
 | US-1.7 | Déclencher l'export en **asynchrone** (`202` + `jobId`) sur exécuteur virtual-threads ; statut consultable (en mémoire au MVP) | RG-EXE-01/03/05 | TEST-EXE-01/02 | M |
 
