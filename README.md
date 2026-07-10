@@ -92,6 +92,9 @@ Comment on passe de l'existant à la cible.
 - [cible-c4-conteneurs.png](./schemas/cible-c4-conteneurs.png) — **niveau 2 (Conteneurs)** : batch / api / core, DuckDB, suivi de jobs, dans la frontière Kubernetes · [source .drawio](./schemas/cible-c4-conteneurs.drawio).
 - [cible-c4-composants.png](./schemas/cible-c4-composants.png) — **niveau 3 (Composants)** : cœur hexagonal (ports & adapters).
 
+**Pipeline & parallélisation** :
+- [cible-pipeline-parallelisme.png](./schemas/cible-pipeline-parallelisme.png) — étapes d'un export (fetch → mise en forme par document → accumulation → réconciliation → export) et **où chaque étape est parallélisable** (cf. spec technique §4.1).
+
 ---
 
 ## Par où commencer

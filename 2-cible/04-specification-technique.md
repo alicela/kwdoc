@@ -161,11 +161,19 @@ Base de travail DuckDB éphémère par job (ingestion via l'**appender** natif p
 
 ### 4.1 Pivot « lignes de variables → tables larges par niveau » (design du cœur MVP)
 
-**Problème.** Genesis renvoie les données en **lignes de variables** (`interrogationId, varId, value, scope, iteration`, + champs fixes). La sortie attendue est, **par niveau d'information**, une **table large** : une colonne par variable, une ligne par interrogation (RACINE) ou par occurrence (boucle). Les colonnes sont **dynamiques** (elles dépendent de l'enquête).
+> 📐 Les étapes et leurs points de parallélisation sont schématisés dans [`../schemas/cible-pipeline-parallelisme.png`](../schemas/cible-pipeline-parallelisme.png).
 
-**Principe retenu : pivot PILOTÉ PAR LES MÉTADONNÉES (BPM), pas par les données.** Le schéma de chaque niveau (liste des variables + types) vient du **modèle de métadonnées BPM**, pas des valeurs observées. Avantages : (a) **schéma stable** d'une partition à l'autre (une variable sans valeur donne une colonne `NULL`, elle ne disparaît pas) ; (b) **typage explicite** ; (c) on **n'reconstruit jamais la hiérarchie en parsant les noms à points** (résout la fragilité CL-STR-03) : le rattachement à un niveau se fait par `scope`, fourni par la donnée et validé par les métadonnées.
+**Problème.** Genesis renvoie des **documents** ; chaque document contient une **liste d'interrogations×mode**, et **toutes les données d'une interrogation×mode y sont regroupées** (`varId, value, scope, iteration` + champs fixes) — une interro×mode n'est **jamais scindée** entre deux documents. La sortie attendue est, **par niveau d'information**, une **table large** : une colonne par variable, une ligne par interrogation (RACINE) ou par occurrence (boucle). Les colonnes sont **dynamiques** (elles dépendent de l'enquête).
 
-**Étapes.**
+**Principe retenu : pivot PILOTÉ PAR LES MÉTADONNÉES (BPM), pas par les données.** Le schéma de chaque niveau (liste des variables + types) vient du **modèle de métadonnées BPM**, pas des valeurs observées. Avantages : (a) **schéma stable** d'une partition à l'autre (une variable sans valeur donne une colonne `NULL`, elle ne disparaît pas) ; (b) **typage explicite** ; (c) on **ne reconstruit jamais la hiérarchie en parsant les noms à points** (résout la fragilité CL-STR-03) : le rattachement à un niveau se fait par `scope`, fourni par la donnée et validé par les métadonnées.
+
+**Deux implémentations possibles** — le fait que **chaque interro×mode soit complète dans un document** (jamais scindée) débloque la seconde :
+- **(A) Staging + pivot ensembliste** : empiler les lignes de tous les documents dans une table `staging`, puis un `GROUP BY` par niveau (SQL ci-dessous). Simple ; pivot après ingestion, parallélisé en interne par DuckDB.
+- **(B) Pivot PAR INTERRO×MODE, pipeliné** *(préférée)* : chaque interro×mode étant **complète dans un document**, on la met en forme **dès réception du document** (assemblage RACINE + occurrences) puis on **append** le résultat → fetch et mise en forme **se chevauchent**, hautement parallèle, sans attendre toute la partition.
+
+Les deux produisent le **même schéma** métadonnées-piloté et partagent le SQL-builder et le typage ci-dessous.
+
+**Étapes (variante A).**
 1. **Staging** : insertion des lignes de variables dans une table DuckDB de travail via l'**Appender** (rapide, hors heap Java).
 2. **Génération du SQL par niveau** : pour chaque groupe du modèle BPM (RACINE + une boucle par groupe), un petit **SQL-builder Java** émet un `CREATE TABLE … AS SELECT` par **agrégation conditionnelle** (`… FILTER (WHERE var_id = …)`), une colonne par variable du niveau, castée au type cible.
 3. **Identifiant d'occurrence** pour les boucles : calculé par fenêtre (`dense_rank`) sur `iteration`.
@@ -208,6 +216,14 @@ String colExpr(Variable v) {                       // une colonne = une variable
 - **États (`addStates`)** : mêmes colonnes suffixées `_STATE` par agrégation sur la colonne `state`, en excluant `FILTER_RESULT_*`/`*_MISSING` (RG-ACQ-11).
 - **Erreurs de cast** (valeur non conforme au type déclaré) : collectées comme erreurs **récupérables** → statut `PARTIAL`, colonne à `NULL` (RG-EXE-31), plutôt que d'échouer tout le job.
 - **Multimode** : le pivot est unimodal (staging filtré/portant `mode`) ; la réconciliation (UNION + `MODE_KRAFTWERK`) est l'étape SQL suivante (EPIC-3).
+
+**Ingestion par lots, mémoire et parallélisme** (le `CREATE TABLE … AS SELECT` ne s'y oppose pas) :
+- **Ingestion et pivot sont deux phases découplées.** Les **appels paginés Genesis alimentent `staging` au fil de l'eau** (Appender) ; le pivot lit `staging`, jamais Genesis directement. Les lots Genesis sont donc préservés.
+- **`staging` vit dans DuckDB (colonnaire, sur disque, spill géré), pas dans le tas Java** → « toute la partition en staging » n'implique pas une forte RAM ; l'objectif < 1 Go (heap) tient.
+- **Le pivot est parallélisé par DuckDB** (exécution morsel-driven multi-cœurs du `GROUP BY`). De plus, **les niveaux (RACINE + chaque boucle) sont indépendants** → pivotables en parallèle (lectures concurrentes). Parallélisme gros grain : **plusieurs partitions/jobs concurrents** (virtual threads), chacun sa base DuckDB de travail.
+- **Écriture DuckDB = un seul writer** : on parallélise le **fetch Genesis** (I/O) et on draine les pages vers un writer unique via une file bornée (append quasi gratuit).
+- **Pipelining natif (variante B)** : chaque interro×mode est **complète dans un document** → dès qu'un document est reçu, ses interro×mode sont mises en forme, **fetch et mise en forme se chevauchent** (pas de barrière « après ingestion »). Seul point de sérialisation : l'**append** dans DuckDB (writer unique), rapide.
+- **Barrières réelles** : la **réconciliation multimode** (UNION des modes) et l'**export** interviennent une fois les tables par mode accumulées — étapes ensemblistes, parallélisées par DuckDB et par niveau/table.
 
 **Alternative écartée** : le `PIVOT … ON var_id` natif de DuckDB **infère les colonnes des données** (schéma instable entre partitions, tout en `VARCHAR`) → non retenu pour la cible ; l'agrégation conditionnelle pilotée par métadonnées est préférée.
 
