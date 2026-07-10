@@ -69,6 +69,8 @@ Ce document décrit **comment** est construite la cible : architecture, technolo
 
 ## 2. Vue d'ensemble
 
+> 📐 Schémas **C4** dans `../schemas/` : [contexte](../schemas/cible-c4-contexte.png) (niveau 1), [conteneurs](../schemas/cible-c4-conteneurs.png) (niveau 2, `.drawio` éditable), [composants hexagonaux](../schemas/cible-c4-composants.png) (niveau 3). Le diagramme ASCII ci-dessous en est un résumé.
+
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │        kraftwerk-core partagé — artefacts : kraftwerk-batch (Kube) + kraftwerk-api (?)        │

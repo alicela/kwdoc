@@ -84,8 +84,13 @@ Comment on passe de l'existant à la cible.
 
 ## Schémas (`schemas/`)
 
-- [existant-vs-cible.png](./schemas/existant-vs-cible.png) — comparaison existant / cible pour parties prenantes (prêt à présenter).
-- [existant-vs-cible.drawio](./schemas/existant-vs-cible.drawio) — source éditable (draw.io / diagrams.net).
+**Comparaison existant / cible** (parties prenantes) :
+- [existant-vs-cible.png](./schemas/existant-vs-cible.png) — prêt à présenter · [source .drawio](./schemas/existant-vs-cible.drawio)
+
+**Architecture cible en modèle C4** :
+- [cible-c4-contexte.png](./schemas/cible-c4-contexte.png) — **niveau 1 (Contexte)** : acteurs + systèmes externes.
+- [cible-c4-conteneurs.png](./schemas/cible-c4-conteneurs.png) — **niveau 2 (Conteneurs)** : batch / api / core, DuckDB, suivi de jobs, dans la frontière Kubernetes · [source .drawio](./schemas/cible-c4-conteneurs.drawio).
+- [cible-c4-composants.png](./schemas/cible-c4-composants.png) — **niveau 3 (Composants)** : cœur hexagonal (ports & adapters).
 
 ---
 
