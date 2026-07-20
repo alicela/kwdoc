@@ -13,6 +13,7 @@ Ce document recense les **évolutions nécessaires sur les systèmes amont** pou
 | **BPM** | Gérer les **liens 2 à 2** : produire les variables `LIEN_1` à `LIEN_20` avec sentinelles `0`/`99`. BPM garantit la cohérence des données (ex: ménage 1/N individus). Kraftwerk v2 consomme uniquement ces variables sans logique métier. |
 | **Genesis** | **Endpoint `/partitions/{partitionId}`** : retourner les interrogations d'une partition en cumulant les modes, paginé (documents = interro×mode complètes). Format : NDJSON (streaming + compression). Champs : `interrogationId`, `usualSurveyUnitId`, `collectionInstrument`, `mode`, `questionnaireState`, `validationDate`, `isCapturedIndirectly`, variables (`varId`/`value`/`scope`/`iteration`), `shortLabel` de partition. Sécurité : OIDC (JWT). **Prérequis bloquant pour le MVP.** |
 | **Genesis** | **Module VTL JS** : intégrer dans le process pour permettre à Genesis de précalculer les variables actuellement traitées par VTL/Trevas dans KW1. Objectif : alignement avec la cible KW2 (zéro VTL). |
+| **Perret** | **Enregistrement des `calculated` dans Genesis** : Nécessaire dès la **V2** pour que KW2 puisse consommer les variables pré-calculées. |
 
 ---
 
@@ -40,6 +41,11 @@ Ce document recense les **évolutions nécessaires sur les systèmes amont** pou
 - **Objectif** : Permettre à Genesis de **précalculer les variables** (actuellement calculées par VTL/Trevas dans KW1) pour alignement avec la cible KW2 (zéro VTL).
 - **Portée** : Les variables déjà calculées par Genesis doivent couvrir 100% des besoins KW1 pour éviter les régressions.
 - **Synchro** : À coordonner avec l'équipe Genesis pour éviter les doublons avec le travail KW2.
+
+### Perret — Enregistrement des `calculated`
+- **Objectif** : Enregistrer les variables de type **`calculated`** dans Genesis pour qu'elles soient disponibles via l'endpoint `partitionId`.
+- **Nécessité** : **Dès la V2** (KW2 ne recalcule pas les variables, il les consomme telles quelles).
+- **Impact** : Sans cet enregistrement, KW2 ne pourra pas fonctionner correctement (variables manquantes).
 
 ---
 
