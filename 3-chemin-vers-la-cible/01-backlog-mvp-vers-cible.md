@@ -18,15 +18,15 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | **V0** | EPIC-0 Fondations | Squelette **modules séparés (core/batch/api)**, ports/adapters, CI + portes qualité + SBOM, client Genesis + BPM | — |
 | **V1** | EPIC-1 **MVP — Export Parquet depuis Genesis** | Acquisition `partitionId` → RACINE + boucles → Parquet, job async | EPIC-0 |
 | **V2** | EPIC-2 Export CSV + scripts + logs | CSV conforme, script R, fichiers log/erreurs, sous-dossiers datés | EPIC-1 |
-| **V2** | EPIC-3 Réconciliation multimode (SQL) | Fusion multimode sans VTL, `MODE_KRAFTWERK` | EPIC-1 |
 | **V2** | EPIC-4 États & variables optionnelles | `STARTED/FINISHED`, `addStates`, `FILTER_RESULT`/`MISSING` | EPIC-1 |
 | **V2** | EPIC-5 Suivi de jobs unifié (mémoire) | Store unifié **en mémoire**, statuts, suivi au fil de l'eau — **non persistant** | EPIC-1 |
+| **V2** | EPIC-11 Liens 2à2 (via BPM) | Consommation des variables `LIEN_*` de BPM | EPIC-1 |
 | **V3** | EPIC-6 Sécurité & API | OIDC, rôles, gestion d'erreurs centralisée, health-check | EPIC-1 |
 | **V3** | EPIC-7 Export JSON SI externe | JSON incrémental + replay + debug | EPIC-2 |
 | **V3** | EPIC-8 Données de reporting | Fichier reporting séparé, `OUTCOME_SPOTTING` | EPIC-2 |
+| **V3** | EPIC-3 Réconciliation multimode (SQL) | Fusion multimode sans VTL, `MODE_KRAFTWERK` | EPIC-1 |
 | **V4** | EPIC-9 Anonymisation | Suppression de colonnes paramétrée par enquête | EPIC-2 |
 | **V4** | EPIC-10 Chiffrement / archivage / MinIO | ZIP + chiffrement Vault, backend MinIO | EPIC-2, EPIC-9 |
-| **V4** | EPIC-11 Liens 2à2 (via BPM) | Consommation des variables `LIEN_*` de BPM | EPIC-1 |
 | **V4** | EPIC-12 Observabilité & migration | Métriques, logs structurés, feature flags, bascule | transverse |
 | **V5** | EPIC-13 Évolutions | Lot, multimode sans réconciliation, codification, date T | cible atteinte |
 
@@ -237,12 +237,12 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 |---|---|---|
 | **M0 — Socle** | EPIC-0 | CI verte + portes qualité actives ; client Genesis + BPM opérationnels |
 | **M1 — MVP** | EPIC-1 | Parquet RACINE+boucles d'une partition réelle, async ; démo client |
-| **M2 — Export complet** | EPIC-2/3/4 | CSV+R, multimode SQL, états — parité fonctionnelle « export » |
-| **M3 — Service robuste** | EPIC-5/6 | jobs unifiés (mémoire, au fil de l'eau), sécurité, erreurs centralisées, health-check, diagnostic |
-| **M4 — Parité cible** | EPIC-7/8/9/10/11/12 | JSON, reporting, anonymisation, chiffrement/MinIO, liens BPM ; **< 1 Go validé** ; bascule prod |
+| **M2 — Export complet** | EPIC-2/4/5/11 | CSV+R, liens 2à2, états, suivi jobs — parité fonctionnelle « export » |
+| **M3 — Service robuste** | EPIC-6/3 | jobs unifiés (mémoire, au fil de l'eau), sécurité, erreurs centralisées, health-check, diagnostic, **multimode SQL** |
+| **M4 — Parité cible** | EPIC-7/8/9/10/12 | JSON, reporting, anonymisation, chiffrement/MinIO ; **< 1 Go validé** ; bascule prod |
 | **M5 — Évolutions** | EPIC-13 | selon priorisation client |
 
 ## Notes de priorisation
-- **Non-régression prioritaire** : EPIC-3 (multimode réécrit sans VTL) et EPIC-8 (`OUTCOME_SPOTTING`) sont les logiques métier les plus à risque — à couvrir tôt par tests.
+- **Non-régression prioritaire** : EPIC-8 (`OUTCOME_SPOTTING`) et EPIC-11 (liens 2à2) sont les logiques métier les plus à risque — à couvrir tôt par tests. EPIC-3 (multimode réécrit sans VTL) reste critique mais **dépriorisé en V3**.
 - **Zones sans aucune couverture aujourd'hui** (cf. couverture Cucumber) : JSON (EPIC-7), jobs async (EPIC-5/6), multimode réel (EPIC-3), anonymisation (EPIC-9) — prévoir l'effort de test associé.
 - Ce backlog **remplace** la roadmap indicative de `annexe-02-synthese-executive-initiale.md`. Révisions client 2026-07-09 intégrées : suivi de jobs **non persistant** (mémoire), **séparation API/batch**, **MinIO** (Kube), **chiffrement tout au long + interchangeable**, mode sans-DDI **différé**, anonymisation **hors 1ʳᵉ enquête**, script de **post-traitement** sur tables DuckDB. En cas de divergence, ce document fait foi.
