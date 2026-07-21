@@ -34,15 +34,15 @@
 
 ## 🔗 Travaux Complémentaires sur le SI
 
-*Tâches externes à Kraftwerk mais nécessaires pour la solution complète.*
+*Tâches externes à Kraftwerk mais nécessaires pour la solution complète. **Toutes gérées par la même équipe.***
 
-| Composant | US/Tâche | Effort estimé | Équipe responsable | Dépendances | Priorité |
-|-----------|----------|----------------|-------------------|-------------|----------|
-| **BPM** | Valider la présence et la structure des **liens 2à2** (`LIEN_1` à `LIEN_20`) | **S** | Équipe BPM | — | ⭐⭐⭐ |
-| **Node (Perret)** | Développer **module complémentaire Node** pour calculer les variables `calculated` | **M-L** | Équipe Node/Perret | Spécifications variables | ⭐⭐⭐ |
-| **Genesis** | **Intégrer le module Node** dans le process de calcul des variables | **M** | Équipe Genesis | Module Node prêt | ⭐⭐⭐ |
-| **Perret** | **Envoyer les `calculated` à la sauvegarde** (front + back) | **M** | Équipe Perret | Module Node intégré | ⭐⭐⭐ |
-| **Genesis** | **Ajouter endpoint `/partitions/{partitionId}`** (NDJSON, streaming, pagination, OIDC) | **L** | Équipe Genesis | — | ⭐⭐⭐⭐ |
+| Composant | US/Tâche | Effort estimé | Dépendances | Priorité |
+|-----------|----------|----------------|-------------|----------|
+| **BPM** | Valider la présence et la structure des **liens 2à2** (`LIEN_1` à `LIEN_20`) | **S** | — | ⭐⭐⭐ |
+| **Node (Perret)** | Développer **module complémentaire Node** pour calculer les variables `calculated` | **M-L** | Spécifications variables | ⭐⭐⭐ |
+| **Genesis** | **Intégrer le module Node** dans le process de calcul des variables | **M** | Module Node prêt | ⭐⭐⭐ |
+| **Perret** | **Envoyer les `calculated` à la sauvegarde** (front + back) | **M** | Module Node intégré | ⭐⭐⭐ |
+| **Genesis** | **Ajouter endpoint `/partitions/{partitionId}`** (NDJSON, streaming, pagination, OIDC) | **L** | — | ⭐⭐⭐⭐ |
 
 > ⚠️ **Impact sur Kraftwerk** : Sans ces travaux, **US-0.4** (Client Genesis) et **US-0.9** (endpoint) ne peuvent pas être implémentés correctement.
 
