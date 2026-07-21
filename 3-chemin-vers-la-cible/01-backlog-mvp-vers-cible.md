@@ -5,7 +5,7 @@
 Backlog priorisé pour construire la cible **de façon incrémentale**, en partant d'un **MVP à valeur démontrable** puis en ajoutant les fonctionnalités jusqu'au périmètre complet.
 
 - Sources : `../2-cible/03-specification-fonctionnelle.md` (fonctionnel), `../2-cible/04-specification-technique.md` (technique), `../2-cible/regles-metiers/` (RG/CN/CL), `../2-cible/05-couverture-tests-cucumber.md` (tests).
-- **MVP défini avec le client** : *export Parquet depuis Genesis (par `partitionId`), sans liens 2à2 ni chiffrement.*
+- **MVP défini avec le client** : *export JSON depuis Genesis (par `partitionId`), sans liens 2à2 ni chiffrement.*
 - Convention : `EPIC-n` regroupe des `US-n.m`. Chaque US porte une **valeur**, des **critères d'acceptation** (CA), les **RG** couvertes et les **tests** cibles (`TEST-…` de la couverture Cucumber).
 - Priorité : **V0** = fondations, **V1** = MVP, **V2/V3/V4** = incréments, **V5** = évolutions. Effort indicatif : S / M / L.
 
@@ -16,21 +16,21 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | Vague | Epic | Objectif | Dépend de |
 |---|---|---|---|
 | **V0** | EPIC-0 Fondations | Squelette **modules séparés (core/batch/api)**, ports/adapters, CI + portes qualité + SBOM, client Genesis + BPM | — |
-| **V1** | EPIC-1 **MVP — Export Parquet depuis Genesis** | Acquisition `partitionId` → RACINE + boucles → Parquet, job async | EPIC-0 |
+| **V1** | **EPIC-7 MVP — Export JSON SI externe** | Export JSON incrémental + replay depuis Genesis, job async | EPIC-0 |
+| **V2** | EPIC-1 Export Parquet depuis Genesis | Acquisition `partitionId` → RACINE + boucles → Parquet | EPIC-0 |
 | **V2** | EPIC-2 Export CSV + scripts + logs | CSV conforme, script R, fichiers log/erreurs, sous-dossiers datés | EPIC-1 |
-| **V2** | EPIC-4 États & variables optionnelles | `STARTED/FINISHED`, `addStates`, `FILTER_RESULT`/`MISSING` | EPIC-1 |
-| **V2** | EPIC-5 Suivi de jobs unifié (mémoire) | Store unifié **en mémoire**, statuts, suivi au fil de l'eau — **non persistant** | EPIC-1 |
-| **V2** | EPIC-11 Liens 2à2 (via BPM) | Consommation des variables `LIEN_*` de BPM | EPIC-1 |
-| **V3** | EPIC-6 Sécurité & API | OIDC, rôles, gestion d'erreurs centralisée, health-check | EPIC-1 |
-| **V3** | EPIC-7 Export JSON SI externe | JSON incrémental + replay + debug | EPIC-2 |
+| **V2** | EPIC-4 États & variables optionnelles | `STARTED/FINISHED`, `addStates`, `FILTER_RESULT`/`MISSING` | EPIC-7 |
+| **V2** | EPIC-5 Suivi de jobs unifié (mémoire) | Store unifié **en mémoire**, statuts, suivi au fil de l'eau — **non persistant** | EPIC-7 |
+| **V2** | EPIC-11 Liens 2à2 (via BPM) | Consommation des variables `LIEN_*` de BPM | EPIC-7 |
+| **V3** | EPIC-6 Sécurité & API | OIDC, rôles, gestion d'erreurs centralisée, health-check | EPIC-7 |
 | **V3** | EPIC-8 Données de reporting | Fichier reporting séparé, `OUTCOME_SPOTTING` | EPIC-2 |
-| **V3** | EPIC-3 Réconciliation multimode (SQL) | Fusion multimode sans VTL, `MODE_KRAFTWERK` | EPIC-1 |
+| **V3** | EPIC-3 Réconciliation multimode (SQL) | Fusion multimode sans VTL, `MODE_KRAFTWERK` | EPIC-7 |
 | **V4** | EPIC-9 Anonymisation | Suppression de colonnes paramétrée par enquête | EPIC-2 |
 | **V4** | EPIC-10 Chiffrement / archivage / MinIO | ZIP + chiffrement Vault, backend MinIO | EPIC-2, EPIC-9 |
 | **V4** | EPIC-12 Observabilité & migration | Métriques, logs structurés, feature flags, bascule | transverse |
 | **V5** | EPIC-13 Évolutions | Lot, multimode sans réconciliation, codification, date T | cible atteinte |
 
-**Chemin critique du MVP** : EPIC-0 → EPIC-1. Tout le reste est incrémental et peut être parallélisé une fois le MVP en place.
+**Chemin critique du MVP** : EPIC-0 → EPIC-7. Tout le reste est incrémental et peut être parallélisé une fois le MVP en place.
 
 ---
 
@@ -51,12 +51,12 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 **CA transverses** : `mvn verify` échoue si couverture < seuil ou si un import `fr.insee.vtl.*`/`trevas` est présent ; l'artefact testé en CI = l'artefact livré.
 
-> **Dépendances / prérequis levés** : infrastructure **Kubernetes prête** ; **BPM prêt** (US-0.5 = simple intégration de la lib). Le prérequis restant est **US-0.9** (endpoint Genesis par `partitionId`), à mener **en parallèle** par l'équipe Genesis — il conditionne la démo d'EPIC-1. Tant qu'il n'est pas livré, US-0.4/US-1.1 se développent contre un **stub Genesis** (`GenesisClientStub`) respectant le contrat OpenAPI cible.
+> **Dépendances / prérequis levés** : infrastructure **Kubernetes prête** ; **BPM prêt** (US-0.5 = simple intégration de la lib). Le prérequis restant est **US-0.9** (endpoint Genesis par `partitionId`), à mener **en parallèle** par l'équipe Genesis — il conditionne la démo d'**EPIC-7**. Tant qu'il n'est pas livré, US-0.4/US-7.1 se développent contre un **stub Genesis** (`GenesisClientStub`) respectant le contrat OpenAPI cible.
 
 ---
 
-## EPIC-1 — MVP : Export Parquet depuis Genesis (V1) ⭐
-**But** : produire les tables Parquet (RACINE + boucles) d'une partition Genesis, de façon asynchrone, **sur MinIO**. **Sans** liens 2à2, chiffrement, anonymisation, CSV, JSON, reporting, mode sans-DDI, ni réconciliation multimode (MVP mono-mode accepté).
+## EPIC-1 — Export Parquet depuis Genesis (V2)
+**But** : produire les tables Parquet (RACINE + boucles) d'une partition Genesis, de façon asynchrone, **sur MinIO**. **Sans** liens 2à2, chiffrement, anonymisation, CSV, JSON, reporting, mode sans-DDI, ni réconciliation multimode (mono-mode accepté).
 **Démo cible** : lancement (Job/CLI) sur un `partitionId` → fichiers `<shortLabel>_RACINE.parquet` (+ tables de boucle) écrits sur **MinIO** ; suivi de statut en mémoire.
 
 | US | Titre | RG | Tests | Effort |
@@ -70,13 +70,13 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | US-1.6 | Écrire chaque table en **Parquet** (`COPY … TO … FORMAT PARQUET`) **sur MinIO**, dans un sous-dossier d'exécution, préfixe `<shortLabel>` | RG-CSV-01/02/08/12, RG-ANO-21 | TEST-CSV-02 | M |
 | US-1.7 | Déclencher l'export en **asynchrone** (`202` + `jobId`) sur exécuteur virtual-threads ; statut consultable (en mémoire au MVP) | RG-EXE-01/03/05 | TEST-EXE-01/02 | M |
 
-**Hors MVP explicitement** : liens 2à2 (EPIC-11), chiffrement (EPIC-10), anonymisation (EPIC-9), CSV (EPIC-2), multimode (EPIC-3).
+**Hors périmètre** : liens 2à2 (EPIC-11), chiffrement (EPIC-10), anonymisation (EPIC-9), CSV (EPIC-2), multimode (EPIC-3).
 **Suivi de job** : **en mémoire, non persistant — c'est le choix cible** (traitements temporaires et rejouables), pas une dette. EPIC-5 unifie et fiabilise ce suivi, sans introduire de persistance.
 
 ---
 
 ## EPIC-2 — Export CSV, scripts d'import, logs (V2)
-**But** : compléter le MVP Parquet par le CSV conforme et les artefacts d'exécution.
+**But** : compléter l'export Parquet par le CSV conforme et les artefacts d'exécution.
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 ---
 
-## EPIC-3 — Réconciliation multimode sans VTL (V2)
+## EPIC-3 — Réconciliation multimode sans VTL (V3)
 **But** : fusionner automatiquement plusieurs modes en SQL DuckDB (remplace la logique VTL). Point de **non-régression prioritaire**.
 
 | US | Titre | RG | Tests | Effort |
@@ -144,8 +144,8 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 
 ---
 
-## EPIC-7 — Export JSON SI externe (V3)
-**But** : export JSON incrémental + replay (aucune couverture aujourd'hui).
+## EPIC-7 — MVP : Export JSON SI externe (V1)
+**But** : export JSON incrémental + replay depuis Genesis, **nouveau MVP**. Aucune couverture aujourd'hui.
 
 | US | Titre | RG | Tests | Effort |
 |---|---|---|---|---|
@@ -236,13 +236,13 @@ Backlog priorisé pour construire la cible **de façon incrémentale**, en parta
 | Jalon | Contenu | Critère de sortie |
 |---|---|---|
 | **M0 — Socle** | EPIC-0 | CI verte + portes qualité actives ; client Genesis + BPM opérationnels |
-| **M1 — MVP** | EPIC-1 | Parquet RACINE+boucles d'une partition réelle, async ; démo client |
-| **M2 — Export complet** | EPIC-2/4/5/11 | CSV+R, liens 2à2, états, suivi jobs — parité fonctionnelle « export » |
+| **M1 — MVP** | EPIC-7 | JSON incrémental d'une partition réelle, async ; démo client |
+| **M2 — Export tabulaire** | EPIC-1/2/4/5/11 | Parquet+CSV+R, liens 2à2, états, suivi jobs — parité fonctionnelle « export » |
 | **M3 — Service robuste** | EPIC-6/3 | jobs unifiés (mémoire, au fil de l'eau), sécurité, erreurs centralisées, health-check, diagnostic, **multimode SQL** |
-| **M4 — Parité cible** | EPIC-7/8/9/10/12 | JSON, reporting, anonymisation, chiffrement/MinIO ; **< 1 Go validé** ; bascule prod |
+| **M4 — Parité cible** | EPIC-8/9/10/12 | Reporting, anonymisation, chiffrement/MinIO ; **< 1 Go validé** ; bascule prod |
 | **M5 — Évolutions** | EPIC-13 | selon priorisation client |
 
 ## Notes de priorisation
 - **Non-régression prioritaire** : EPIC-8 (`OUTCOME_SPOTTING`) et EPIC-11 (liens 2à2) sont les logiques métier les plus à risque — à couvrir tôt par tests. EPIC-3 (multimode réécrit sans VTL) reste critique mais **dépriorisé en V3**.
-- **Zones sans aucune couverture aujourd'hui** (cf. couverture Cucumber) : JSON (EPIC-7), jobs async (EPIC-5/6), multimode réel (EPIC-3), anonymisation (EPIC-9) — prévoir l'effort de test associé.
+- **Zones sans aucune couverture aujourd'hui** (cf. couverture Cucumber) : jobs async (EPIC-5/6), multimode réel (EPIC-3), anonymisation (EPIC-9) — prévoir l'effort de test associé. EPIC-7 (JSON) devient le MVP en V1.
 - Ce backlog **remplace** la roadmap indicative de `annexe-02-synthese-executive-initiale.md`. Révisions client 2026-07-09 intégrées : suivi de jobs **non persistant** (mémoire), **séparation API/batch**, **MinIO** (Kube), **chiffrement tout au long + interchangeable**, mode sans-DDI **différé**, anonymisation **hors 1ʳᵉ enquête**, script de **post-traitement** sur tables DuckDB. En cas de divergence, ce document fait foi.

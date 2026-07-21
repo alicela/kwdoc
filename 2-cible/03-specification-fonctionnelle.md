@@ -173,7 +173,7 @@ Sécurité **OIDC/JWT** avec mode `NONE` possible (🟢 RG-EXE-20), rôles `ADMI
 
 ## 7. Périmètre MVP et trajectoire (résumé)
 
-Le **MVP** couvre le chemin fonctionnel le plus court produisant de la valeur : **acquisition Genesis par `partitionId` → mise en forme RACINE + boucles → export Parquet** (sur **MinIO**), suivi de job **en mémoire** (non persistant), **sans** liens 2à2, chiffrement, anonymisation, JSON, reporting, mode sans-DDI, ni réconciliation multimode (MVP mono-mode possible). Les fonctionnalités s'ajoutent ensuite par incréments jusqu'à la cible. Le découpage détaillé en epics et user stories priorisées est dans **`../3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md`**.
+Le **MVP** couvre le chemin fonctionnel le plus court produisant de la valeur : **acquisition Genesis par `partitionId` → export JSON incrémental + replay** (pour SI externe), suivi de job **en mémoire** (non persistant), **sans** liens 2à2, chiffrement, anonymisation, Parquet, CSV, reporting, mode sans-DDI, ni réconciliation multimode (MVP mono-mode possible). Les fonctionnalités s'ajoutent ensuite par incréments jusqu'à la cible. Le découpage détaillé en epics et user stories priorisées est dans **`../3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md`**.
 
 ---
 

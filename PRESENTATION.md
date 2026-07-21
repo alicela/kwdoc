@@ -43,7 +43,7 @@ Mode « hors Genesis » et parseurs de fichiers locaux (dont `XformsDataParser`)
 
 ## Par où on démarre
 - **EPIC-0 (fondations)** — squelette hexagonal (core / batch / api), ports & adapters, CI + portes qualité : **peut démarrer tout de suite**.
-- **En parallèle, les 2 points durs** : l'**endpoint Genesis** (US-0.9, équipe Genesis) et le **spike du pivot** (US-1.0). Le reste (JSON, reporting, chiffrement, multimode, anonymisation) arrive **par incréments**.
+- **En parallèle, les 2 points durs** : l'**endpoint Genesis** (US-0.9, équipe Genesis) et le **spike du pivot** (US-1.0). Le reste (**Parquet/CSV, reporting, chiffrement, multimode, anonymisation**) arrive **par incréments**.
 
 ## Pour aller plus loin
 - **Vue d'ensemble** : `schemas/existant-vs-cible.png`

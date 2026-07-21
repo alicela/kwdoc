@@ -79,7 +79,7 @@ Comment on passe de l'existant à la cible.
 
 | Doc | Contenu | Statut |
 |---|---|---|
-| [01-backlog-mvp-vers-cible](./3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md) | **Backlog** 14 epics / ~60 US, vagues V0→V5, du MVP (Parquet depuis Genesis, sans liens 2à2 ni chiffrement) à la cible, jalons M0→M5 | ✅ **fait foi** (2026-07-09) |
+| [01-backlog-mvp-vers-cible](./3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md) | **Backlog** 14 epics / ~60 US, vagues V0→V5, du MVP (JSON depuis Genesis, sans liens 2à2 ni chiffrement) à la cible, jalons M0→M5 | ✅ **fait foi** (2026-07-09) |
 | [annexe-01-choix-architecturaux-initiaux](./3-chemin-vers-la-cible/annexe-01-choix-architecturaux-initiaux.md) | Choix archi initiaux | 🗄️ archivé (superseded par 2-cible/04) |
 | [annexe-02-synthese-executive-initiale](./3-chemin-vers-la-cible/annexe-02-synthese-executive-initiale.md) | Synthèse exécutive initiale | 🗄️ archivé (superseded par le backlog) |
 | [annexe-03-suivi-initial](./3-chemin-vers-la-cible/annexe-03-suivi-initial.md) | État d'avancement initial | 🗄️ archivé |

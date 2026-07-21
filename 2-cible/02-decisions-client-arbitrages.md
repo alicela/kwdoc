@@ -110,10 +110,10 @@ public class ReportingDataInputAdapter implements DataInputPort {
 
 ### ❓ Question 5 : Premières Fonctionnalités et Calendrier
 **Réponse Client** : 
-> "Les **premières fonctionnalités attendues** devront permettre un **export csv/parquet simple** (sans TCM et donc sans lien 2à2). **Les boucles devront être gérées**, et **l'appel à Genesis se fera par partitionId**. Le calendrier sera défini à l'issue de la conception."
+> "Les **premières fonctionnalités attendues** devront permettre un **export JSON simple** (sans TCM et donc sans lien 2à2). **Les boucles devront être gérées**, et **l'appel à Genesis se fera par partitionId**. Le calendrier sera défini à l'issue de la conception."
 
 **Interprétation** :
-- ✅ **Première fonctionnalité** : Export CSV/Parquet **simple**
+- ✅ **Première fonctionnalité** : Export **JSON simple**
 - ❌ **Exclu** : TCM (Traitement de Cohérence Multimode) et liens 2à2
 - ✅ **Inclus** : Gestion des **boucles** (obligatoire dès le début)
 - ✅ **Nouvelle information** : Appel Genesis par **partitionId** (et non campaignId ou questionnaireModelId)
@@ -123,7 +123,7 @@ public class ReportingDataInputAdapter implements DataInputPort {
 - **partitionId** devient le **paramètre principal** pour les appels Genesis
 - **Pas de TCM** dans la première version (plus simple)
 - **Gestion des boucles** obligatoire dès le début
-- **Export simple** : CSV/Parquet sans transformation complexe
+- **Export simple** : **JSON** sans transformation complexe
 
 **Impact sur l'Architecture** :
 - Modification du **GenesisClient** : Utilisation de `partitionId` au lieu de `campaignId`/`questionnaireModelId`
@@ -156,11 +156,11 @@ public class ReportingDataInputAdapter implements DataInputPort {
 
 | ID | Fonctionnalité | Description | Complexité |
 |----|---------------|-------------|------------|
-| FH-001 | Export CSV/Parquet simple | Export basique sans TCM/liens 2à2 | ⭐⭐ |
+| FH-001 | Export JSON simple | Export basique sans TCM/liens 2à2 | ⭐⭐ |
 | FH-002 | Gestion des boucles | Detection et export des structures en boucle | ⭐⭐⭐ |
 | FH-003 | Appel Genesis par partitionId | Récupération des données via partitionId | ⭐⭐ |
 | FH-004 | Anonymisation | Suppression de colonnes (SQL ou paramètre) | ⭐⭐ |
-| FH-005 | Formats CSV/Parquet | Génération des deux formats | ⭐⭐ |
+| FH-005 | Incrémental + replay | Export JSON par sinceDate/untilDate | ⭐⭐ |
 | FH-006 | Logging structuré | JSON + Correlation ID | ⭐ |
 | FH-007 | Métriques | Monitoring via Micrometer | ⭐ |
 
@@ -168,7 +168,7 @@ public class ReportingDataInputAdapter implements DataInputPort {
 
 | ID | Fonctionnalité | Description | Complexité |
 |----|---------------|-------------|------------|
-| FH-008 | Export JSON | Génération de fichiers JSON locaux | ⭐⭐ |
+| FH-008 | Export Parquet/CSV | Génération des formats tabulaires | ⭐⭐ |
 | FH-009 | TCM (Réconciliation) | Réconciliation multimode | ⭐⭐⭐⭐ |
 | FH-010 | Liens 2à2 | Gestion des liens entre tables | ⭐⭐⭐⭐ |
 | FH-011 | Persistance Jobs | Spring Batch + Base de données | ⭐⭐⭐ |
@@ -203,9 +203,9 @@ public class ReportingDataInputAdapter implements DataInputPort {
 │     ├─ Création de DataFrames par niveau (racine + boucles)        │
 │     └─ Conservation de la hiérarchie                                │
 │                                                                     │
-│  5. OUTPUT : Génération CSV/Parquet                                 │
-│     ├─ Écriture streaming par DataFrame                             │
-│     └─ Formatage selon le type de sortie                            │
+│  5. OUTPUT : Génération JSON (incrémental + replay)              │
+│     ├─ Export streaming par DataFrame                              │
+│     └─ Format NDJSON                                                   │
 │                                                                     │
 │  6. STORAGE : Sauvegarde des fichiers                              │
 │     ├─ Local (cache)                                                │
@@ -242,7 +242,7 @@ public record ExportRequest(
     Set<String> excludedVariables, // Optionnel : pour anonymisation
     boolean includeRoot,          // Optionnel : inclure le niveau racine
     boolean includeLoops,         // Optionnel : inclure les boucles
-    OutputFormat format,         // CSV, PARQUET, JSON
+    OutputFormat format,         // JSON (CSV, PARQUET en V2)
     boolean archive,             // Optionnel : archiver les résultats
     boolean encrypt               // Optionnel : chiffrer les résultats
 ) {}
@@ -453,7 +453,7 @@ public class ExportController {
 - [ ] Implémenter **DataInputPort** (Genesis par partitionId)
 - [ ] Implémenter **DataFrame** et modèles associés
 - [ ] Implémenter **LoopDetectionPort**
-- [ ] Implémenter **DataOutputPort** (CSV/Parquet)
+- [ ] Implémenter **DataOutputPort** (JSON)
 - [ ] Ajouter **AnonymizationPort** (SQL + paramètre)
 - [ ] Ajouter les tests unitaires
 
@@ -497,7 +497,7 @@ public class ExportController {
 5. **Variables calculées** fournies par Genesis (pas de calcul à faire)
 
 ### **Ce qui est Conservé** ✅
-1. **Formats de sortie** : CSV, Parquet
+1. **Formats de sortie** : JSON (CSV/Parquet en V2)
 2. **Gestion des boucles** (obligatoire)
 3. **Structure des données** (niveaux d'information)
 4. **Intégration Genesis** (mais simplifiée)
@@ -516,7 +516,7 @@ public class ExportController {
 3. **Reportings** → V2 (mais architecture préparée)
 4. **Codification** → V2
 5. **Persistance Jobs** → V2
-6. **Export JSON local** → V2
+6. **Export Parquet/CSV** → V2
 
 ---
 
@@ -750,7 +750,7 @@ Je peux **immédiatement** :
 **Avec vos réponses, j'ai maintenant toutes les informations nécessaires pour :**
 
 1. ✅ **Créer le squelette du projet Kraftwerk V1**
-2. ✅ **Implémenter le pipeline de traitement** (partitionId → CSV/Parquet + boucles + anonymisation)
+2. ✅ **Implémenter le pipeline de traitement** (partitionId → JSON + boucles + anonymisation)
 3. ✅ **Produire une documentation complète**
 4. ✅ **Préparer les tests**
 

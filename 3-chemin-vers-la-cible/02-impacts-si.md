@@ -34,7 +34,7 @@ Ce document recense les **évolutions nécessaires sur les systèmes amont** pou
   - **Champs obligatoires** : `interrogationId`, `usualSurveyUnitId`, `collectionInstrument`, `mode`, `questionnaireState`, `validationDate`, `isCapturedIndirectly`, variables (`varId`, `value`, `scope`, `iteration`), `shortLabel` de partition.
   - **Sécurité** : OIDC (JWT).
   - **OpenAPI** : Spécification à publier.
-- **Blocage** : **Prérequis dur** pour le MVP (EPIC-1). Sans cet endpoint, KW2 ne peut pas démarrer.
+- **Blocage** : **Prérequis dur** pour le MVP (EPIC-7). Sans cet endpoint, KW2 ne peut pas démarrer.
 - **Workaround dev** : Développement contre un **stub** (`GenesisClientStub`) en attendant la livraison.
 
 ### Genesis — Module VTL JS
@@ -53,7 +53,7 @@ Ce document recense les **évolutions nécessaires sur les systèmes amont** pou
 
 | Risque | Impact | Mitigation |
 |--------|--------|------------|
-| Retard sur l'endpoint `partitionId` (Genesis) | **Blocage MVP** (EPIC-1 impossible) | Suivi régulier avec Genesis, développement contre stub |
+| Retard sur l'endpoint `partitionId` (Genesis) | **Blocage MVP** (EPIC-7 impossible) | Suivi régulier avec Genesis, développement contre stub |
 | Liens 2à2 non disponibles (BPM) | EPIC-11 reporté, **M2 incomplet** | Valider planning BPM dès maintenant |
 | Module VTL JS non prêt | KW2 ne peut remplacer KW1 | Maintenir KW1 en parallèle temporairement |
 
