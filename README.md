@@ -15,6 +15,8 @@ La documentation est organisée en **trois temps** : d'où l'on part (**existant
 ```
 documentation-kraftwerk/
 ├── README.md                         # Ce fichier — index
+├── PRESENTATION.md                   # Pitch équipe 1 page (choix + décisions à prendre)
+├── ARGUMENTAIRE-REFONTE.md           # Note de synthèse chiffrée — justifier la refonte (décideurs)
 │
 ├── 1-existant/                       # D'OÙ L'ON PART — analyse de l'app actuelle (v4.1.3)
 │   ├── 01-architecture-globale.md
@@ -30,6 +32,7 @@ documentation-kraftwerk/
 │   ├── 03-specification-fonctionnelle.md
 │   ├── 04-specification-technique.md
 │   ├── 05-couverture-tests-cucumber.md
+│   ├── ecarts-existant-cible.md      # Écarts fonctionnels : ce qui disparaît / ce qui est nouveau
 │   └── regles-metiers/               # Règles métier cible par domaine (RG/CN/CL)
 │       ├── README.md
 │       └── 01..09  (ACQ, STR, LIEN, MULTI, CSV, JSON, REP, ANO, EXE)
@@ -71,6 +74,7 @@ Ce que la refonte doit produire.
 | [03-specification-fonctionnelle](./2-cible/03-specification-fonctionnelle.md) | Ce que fait la cible : flux, fonctionnalités par domaine, statuts, points ouverts | ✅ (2026-07-09) |
 | [04-specification-technique](./2-cible/04-specification-technique.md) | Archi cible **à l'état de l'art** : virtual threads + DuckDB ensembliste, **séparation API/batch**, MinIO, ports/adapters, client Genesis déclaratif + Resilience4j, `ProblemDetail` (RFC 9457), observabilité OpenTelemetry, SBOM/supply-chain, CDS, **suivi de jobs en mémoire** | ✅ (2026-07-09, v1.1 + révisions client) |
 | [05-couverture-tests-cucumber](./2-cible/05-couverture-tests-cucumber.md) | Écart de couverture Cucumber existant → cible (~69 scénarios) | ✅ |
+| [ecarts-existant-cible](./2-cible/ecarts-existant-cible.md) | **Écarts fonctionnels existant → cible** : ce qui disparaît / ce qui est nouveau (deux volets) | ✅ |
 | [regles-metiers/](./2-cible/regles-metiers/README.md) | **Règles métier cible** par domaine (RG/CN/CL), source faisant foi | ✅ |
 
 ## 3 — Chemin vers la cible (`3-chemin-vers-la-cible/`)
@@ -101,7 +105,7 @@ Comment on passe de l'existant à la cible.
 
 ## Par où commencer
 
-- **Décideur / partie prenante** : le schéma [`schemas/existant-vs-cible.png`](./schemas/existant-vs-cible.png), puis [2-cible/01-objectifs-refonte](./2-cible/01-objectifs-refonte.md) et le [backlog](./3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md).
+- **Décideur / partie prenante** : l'[argumentaire de la refonte](./ARGUMENTAIRE-REFONTE.md) (note de synthèse chiffrée) et le schéma [`schemas/existant-vs-cible.png`](./schemas/existant-vs-cible.png), puis [2-cible/01-objectifs-refonte](./2-cible/01-objectifs-refonte.md) et le [backlog](./3-chemin-vers-la-cible/01-backlog-mvp-vers-cible.md).
 - **Architecte / dev** : [2-cible/04-specification-technique](./2-cible/04-specification-technique.md) + [1-existant/06-dette-technique-et-garde-fous](./1-existant/06-dette-technique-et-garde-fous.md).
 - **Analyste métier / test** : [2-cible/regles-metiers](./2-cible/regles-metiers/README.md) + [2-cible/05-couverture-tests-cucumber](./2-cible/05-couverture-tests-cucumber.md).
 
