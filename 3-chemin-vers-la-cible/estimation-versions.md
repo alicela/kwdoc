@@ -1,16 +1,16 @@
 # Estimation Macro — Kraftwerk v2 (V0→V5)
 
-**Date** : 2026-07-21  |  **Objectif** : Aider à l'exercice d'estimation des versions, avec focus sur V0 et V1  |  **Statut** : Fiche de travail
+**Date** : 2026-07-21  |  **Objectif** : Estimation des versions, avec focus sur V0 et V1  |  **Statut** : Fiche de travail
 
 ---
 
 ## 📌 Contexte & Hypothèses
 
 - **Stack technique** : Java 25 + Spring Boot 4.1 + Maven
-- **Équipe** : À préciser (exemple : 3 devs backend + 1 architecte)
+- **Équipe** : A priori : 3 devs backend + 1 lead-tech
 - **Objectif V1 (MVP)** : Démontrer la valeur avec **export JSON incrémental + replay** depuis Genesis (SI externe)
 - **Contrainte performance** : **< 1 Go RAM** pour 1800 interrogations
-- **Prérequis bloquant** : Endpoint Genesis `/partitions/{partitionId}` (US-0.9, équipe Genesis)
+- **Prérequis bloquant** : Endpoint Genesis `/partitions/{partitionId}` (US-0.9, à faire avec ou sans refonte)
 
 ---
 
@@ -72,7 +72,7 @@
 
 **📊 Synthèse V0**
 - **Effort total** : **~8M** (9 US)
-- **Durée estimée** : **3-4 semaines** (équipe de 3 devs)
+- **Durée estimée** : **1 semaine** (équipe de 3 devs)
 - **Risques majeurs** : US-0.4 (coordination Genesis), US-0.3/US-0.8 (nouveaux outils)
 - **Livrable** : Socle technique validé, CI verte, stubs opérationnels
 
@@ -94,7 +94,7 @@
 
 **📊 Synthèse V1**
 - **Effort total** : **~3L** (5 US)
-- **Durée estimée** : **2-3 semaines** (après V0)
+- **Durée estimée** : **3 sprints** (après V0)
 - **Risques majeurs** : US-7.1 (pivot data + intégration Genesis), dépendance forte sur US-0.9
 - **Livrable** : **Démo client** avec export JSON incrémental + replay d'une partition réelle
 - **Jalon** : **M1 — MVP** atteint
@@ -107,117 +107,40 @@
 
 | Version | Périmètre | US | Effort | Durée (3 devs) | Dépendances critiques | Livrable |
 |---------|-----------|----|--------|-----------------|------------------------|-----------|
-| **V0** | Fondations | 9 | ~8M | 3-4 semaines | — | Socle + CI + stubs |
-| **V1** | MVP JSON | 5 | ~3L | 2-3 semaines | US-0.9 (Genesis) | Démo client |
-| **V0+V1** | **MVP complet** | **14** | **~11M-1L** | **5-7 semaines** | Endpoint Genesis | **M1 atteint** |
-| **V2** | Export tabulaire | ~15 | ~10M-12M | 4-5 semaines | V1 | Parquet/CSV + boucles |
-| **V3** | Service robuste | ~10 | ~8M | 3-4 semaines | V2 | Multimode + API |
-| **V4** | Parité cible | ~8 | ~6M | 2-3 semaines | V2 | Chiffrement + obs |
-| **V5** | Évolutions | 5 | ~5L | 2-3 semaines | V4 | Fonctionnalités avancées |
+| **V0** | Fondations | 9 | ~8M | 1 semaine | — | Socle + CI + stubs |
+| **V1** | MVP JSON | 5 | ~3L | 3 sprints | US-0.9 (Genesis) | Démo client |
+| **V0+V1** | **MVP complet** | **14** | **~11M-1L** | **1 série** | Endpoint Genesis | **M1 atteint** |
+| **V2** | Export tabulaire | ~15 | ~10M-12M | 1 sprint | V1 | Parquet/CSV + boucles |
+| **V3** | Service robuste | ~10 | ~8M | 1-2 sprints | V2 | Multimode + API |
+| **V4** | Parité cible | ~8 | ~6M | 1-2 sprints | V2 | Chiffrement + obs |
+| **V5** | Évolutions | 5 | ~5L | ? | V4 | Fonctionnalités avancées |
 
 ---
 
 ---
 
-## 💡 Conseils pour l'Estimation
-
-### 1️⃣ Facteurs d'ajustement
-
-| Facteur | Impact | Comment l'estimer |
-|---------|--------|-------------------|
-| **Expérience équipe Java 25/Spring Boot 4** | +10% à +30% si débutant | Évaluer niveau moyen |
-| **Disponibilité équipe Genesis** | Blocage possible sur US-0.9 | Planifier buffer |
-| **Complexité données réelles** | +20% si boucles complexes | POC sur jeu de test |
-| **Intégration CI/CD** | +10% si nouvel environnement | Vérifier infrastructure |
-| **Tests non-régression** | +15% si couverture faible | Auditer tests existants |
-
-### 2️⃣ Scénarios réalistes (V0 + V1)
-
-| Scénario | Hypothèses | Durée | Coût (3 devs, 1k€/jour/dev) |
-|----------|------------|-------|-----------------------------|
-| **Optimiste** | Équipe expérimentée, Genesis réactif, données simples | **5 semaines** | ~15k€ |
-| **Nominal** | Équipe moyenne, Genesis dans les temps, données modérées | **6-7 semaines** | ~18k€-21k€ |
-| **Pessimiste** | Équipe junior, retard Genesis, données complexes | **8-10 semaines** | ~24k€-30k€ |
-
-### 3️⃣ Points d'attention pour V0
-
-- **US-0.3 (CI + portes qualité)** : Configuration SonarQube, ArchUnit, SBOM → **Prévoir 1 semaine dédiée DevOps**
-- **US-0.4 (Client Genesis)** : Coordination externe → **Buffer de 1 semaine**
-- **US-0.6 (DuckDB)** : POC nécessaire pour valider le pivot → **Prévoir spike de 3-5 jours**
-
-### 4️⃣ Points d'attention pour V1
-
-- **US-7.1 (Structure JSON)** : Dépend du format Genesis (NDJSON) → **Valider avec jeu de données réel**
-- **Performance** : Objectif <1 Go pour 1800 interrogations → **Benchmark obligatoire**
-- **Intégration** : Test end-to-end avec stub Genesis → **Prévoir 1 semaine de tests**
 
 ---
 
----
+## 📊 Estimations alternatives (en points)
 
-## 📝 Espace de Travail pour Ton Estimation
+*Estimations fournies en points (et non en jours-homme) — Objectif : rendre compte de l'estimation pour décider de sa pertinence.*
 
-### Estimation par US (à compléter)
+> **💡 Point clé** : En 1 série, on peut intégrer les enquêtes de conjoncture (V0+V1) sans régression sur l'actuel, et en calculant les agrégats VTL. En **2 séries de sprints** (V0 à V4), on obtient une version qui **reprend toutes les fonctions utilisées** avec un **coût de maintenance bien inférieur** à la version actuelle.
 
-#### V0 — Fondations
+### Estimation détaillée
 
-| US | Effort initial | Ajustement (+/-) | Justification | Total |
-|----|-----------------|------------------|---------------|-------|
-| US-0.1 | M | | | |
-| US-0.2 | M | | | |
-| US-0.3 | M | | | |
-| US-0.4 | L | | | |
-| US-0.5 | M | | | |
-| US-0.6 | M | | | |
-| US-0.7 | S | | | |
-| US-0.8 | M | | | |
-| US-0.9 | L | | | |
-| **Total V0** | | | | **~8M** |
+- **V0** : 13 points — soit environ 1 dev sur une grosse semaine (fondations avec *process* des variables calculées et stockage par `interrogationId`, parallélisable avec *endpoint Genesis* sur une itération)
+- **V1** : 3 sprints
+- **V0+V1** : 1 série
+- **Mise à jour kwactuel** : 1 sprint (beaucoup de runs, duplication/factorisation) + endpoint (13 points) — *mais on ne calcule pas les sommes et on maintient un système tordu*
+- **Brique VTL-Lunatic en Node** : 5 points
+- **Mise à jour Perret** : 8 points (3 front + 5 back)
 
-#### V1 — MVP JSON
 
-| US | Effort initial | Ajustement (+/-) | Justification | Total |
-|----|-----------------|------------------|---------------|-------|
-| US-7.1 | L | | | |
-| US-7.2 | M | | | |
-| US-7.3 | M | | | |
-| US-7.4 | S | | | |
-| US-7.5 | M | | | |
-| **Total V1** | | | | **~3L** |
 
-#### V0 + V1 — MVP Complet
-
-| Métrique | Valeur | Commentaire |
-|----------|--------|-------------|
-| **Effort total** | | |
-| **Durée estimée** | | |
-| **Date de début** | | |
-| **Date de fin prévue** | | |
-| **Budget estimé** | | |
 
 ---
-
-### Questions à se poser avant de finaliser
-
-1. **Disponibilité** : Quand l'endpoint Genesis (US-0.9) sera-t-il prêt ?
-2. **Équipe** : Combien de développeurs dédiés à 100% sur le projet ?
-3. **Environnement** : CI/CD déjà configurée ? Accès Kubernetes/MinIO disponible ?
-4. **Données** : Accès à un jeu de données réel pour tests de performance ?
-5. **Validation** : Qui valide les livrables (démo client pour M1) ?
-6. **Dépendances externes** : Delais prévisibles pour BPM, Vault, MinIO ?
-
----
-
----
-
-## 🎯 Recommandation
-
-**Commencer par estimer V0 + V1 ensemble** (5-7 semaines) car :
-- V0 est un prérequis absolu pour V1
-- Le risque majeur (endpoint Genesis / US-0.9) impacte les deux versions
-- C'est le chemin critique pour atteindre **M1 (MVP)**
-
-> ⚠️ **Priorité absolue** : Valider la disponibilité de l'endpoint Genesis avant de finaliser le planning.
 
 ---
 
